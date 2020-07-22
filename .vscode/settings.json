@@ -1,0 +1,9 @@
+{
+   "files.exclude": {
+      ".nyc_output/": true,
+      "coverage/": true
+   },
+   "editor.detectIndentation": false,
+   "editor.tabSize": 3,
+   "editor.insertSpaces": true
+}

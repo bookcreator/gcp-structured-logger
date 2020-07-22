@@ -1,0 +1,7 @@
+{
+   "useStrict": true,
+   "spec": "test/**/*.test.js",
+   "require": [
+      "test/__setup.js"
+   ]
+}

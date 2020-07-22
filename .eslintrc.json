@@ -1,0 +1,62 @@
+{
+   "extends": [
+      "eslint:recommended",
+      "plugin:node/recommended"
+   ],
+   "parserOptions": {
+      "ecmaVersion": 2018,
+      "sourceType": "module"
+   },
+   "env": {
+      "node": true
+   },
+   "rules": {
+      "node/global-require": "error",
+      "node/handle-callback-err": "error",
+      "node/no-path-concat": "error",
+      "node/no-new-require": "error",
+      "eqeqeq": "error",
+      "no-console": "warn",
+      "no-loop-func": "error",
+      "no-multi-spaces": "warn",
+      "no-trailing-spaces": [
+         "error",
+         {
+            "skipBlankLines": true
+         }
+      ],
+      "no-unused-vars": [
+         "warn",
+         {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_"
+         }
+      ],
+      "quotes": [
+         "error",
+         "single",
+         {
+            "allowTemplateLiterals": true
+         }
+      ],
+      "semi": [
+         "error",
+         "never"
+      ],
+      "spaced-comment": [
+         "error",
+         "always",
+         {
+            "markers": [
+               "/"
+            ],
+            "exceptions": [
+               "*"
+            ],
+            "block": {
+               "balanced": true
+            }
+         }
+      ]
+   }
+}

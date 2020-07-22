@@ -1,0 +1,42 @@
+{
+  "name": "gcp-structured-logger",
+  "version": "0.0.1",
+  "description": "Structured logger for GCP logging",
+  "main": "index.js",
+  "files": [
+    "src/**/*.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bookcreator/gcp-structured-logger"
+  },
+  "author": {
+    "name": "Rich H",
+    "email": "rich@bookcreator.com"
+  },
+  "license": "ISC",
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "lint": "eslint --cache --fix .",
+    "test-debug": "mocha --inspect=50000 --no-timeout",
+    "test": "nyc --reporter=html --reporter=text-summary mocha",
+    "preci-test": "yarn lint",
+    "ci-test": "nyc --reporter=text --reporter=text-summary mocha --forbid-only",
+    "postversion": "git push --follow-tags"
+  },
+  "dependencies": {
+    "@google-cloud/error-reporting": "^2.0.0",
+    "@opencensus/propagation-stackdriver": "^0.0.22",
+    "semver": "^7.3.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^7.5.0",
+    "eslint-plugin-node": "^11.1.0",
+    "mocha": "^8.0.1",
+    "nyc": "^15.1.0",
+    "sinon": "^9.0.2"
+  }
+}
