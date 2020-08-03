@@ -173,7 +173,7 @@ class StructuredLogger {
          // Use first item (which might or might not be an actual message as the data)
          data = message
       } else if (a.length >= 1 && typeof message === 'string') {
-         if (a.length === 1 && (a[0] !== null && typeof a[0] === 'object' && !('message' in a[0]))) {
+         if (a.length === 1 && (a[0] !== null && typeof a[0] === 'object' && !('message' in a[0]) && !(a[0] instanceof Set || a[0] instanceof Map || a[0] instanceof Date || a[0] instanceof RegExp))) {
             // If we've only got 1 extra object at the end and it has no message spread the object along with the message so we get a nice jsonPayload and message
             data = { ...a[0], message }
          } else {

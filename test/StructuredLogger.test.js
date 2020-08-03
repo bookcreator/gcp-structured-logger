@@ -294,6 +294,47 @@ describe('StructuredLogger', function () {
 
                assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity, timestamp })).lastCall.lastArg, data)
             })
+
+            it('should use first argument as message and spread second Array arg', function () {
+               const message = 'hello'
+               const data = ['world']
+
+               logger.log(message, data)
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message, '0': data[0] })
+            })
+
+            it('should use first argument as message and spread second Buffer arg', function () {
+               const message = 'hello'
+               const data = Buffer.from('world', 'utf8')
+
+               logger.log(message, data)
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message, ...data })
+            })
+
+            it('should use first argument as message and spread second Set arg', function () {
+               const message = 'hello'
+               const data = new Set(['world'])
+
+               logger.log(message, data)
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message, '0': data })
+            })
+
+            it('should use first argument as message and spread second Map arg', function () {
+               const message = 'hello'
+               const data = new Map()
+               data.set(1, 'world')
+               data.set('boo', 'hello')
+               data.set({ key: 'thing' }, 'blah')
+
+               logger.log(message, data)
+
+               const payload = writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message, '0': data })
+            })
          })
 
          context('NODE_ENV=production', function () {
