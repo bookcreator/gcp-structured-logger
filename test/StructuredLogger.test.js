@@ -235,6 +235,14 @@ describe('StructuredLogger', function () {
                assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, data)
             })
 
+            it('should concatenate only two string arguments', function () {
+               const data = 'hello'
+
+               logger.log(data, 'world')
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, data + ' world')
+            })
+
             it('should use only argument', function () {
                const data = {}
 
@@ -252,6 +260,17 @@ describe('StructuredLogger', function () {
                logger.log(...args)
 
                assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, `hello world ${date.toISOString()} 1 false true 0 1.2 /b\\\\o\\n(o\\))/gi undefined null ${bigInt}`)
+            })
+
+            it('should concatenate non-object arguments up to first object', function () {
+               const date = new Date()
+               // eslint-disable-next-line node/no-unsupported-features/es-builtins
+               const bigInt = BigInt('123432432432423432423')
+               const args = ['hello', 'world', date, 1, false, true, 0, { hello: 'world' }, 1.2, /b\\o\n(o\))/ig, undefined, null, bigInt]
+
+               logger.log(...args)
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message: `hello world ${date.toISOString()} 1 false true 0`, ...[{ hello: 'world' }, 1.2, /b\\o\n(o\))/ig, undefined, null, bigInt] })
             })
 
             it('should use first argument as message and spread second arg if it does not contain a message property', function () {

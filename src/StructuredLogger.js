@@ -178,19 +178,24 @@ class StructuredLogger {
             data = { ...a[0], message }
          } else {
             data = `${message}`
+            const restOfArgs = []
             for (const s of a) {
-               if (typeof s !== 'object' || s === null) {
-                  data += ' ' + String(s)
-               } else if (s instanceof Date) {
-                  data += ' ' + s.toISOString()
-               } else if (s instanceof RegExp) {
-                  data += ` /${s.source}/${s.flags}`
+               if (restOfArgs.length === 0) {
+                  if (typeof s !== 'object' || s === null) {
+                     data += ' ' + String(s)
+                  } else if (s instanceof Date) {
+                     data += ' ' + s.toISOString()
+                  } else if (s instanceof RegExp) {
+                     data += ` /${s.source}/${s.flags}`
+                  } else {
+                     restOfArgs.push(s)
+                  }
                } else {
                   // Can't stringify everything - prioritise the message and just use the number keyed array as the rest of the object
-                  data = { message, ...a }
-                  break
+                  restOfArgs.push(s)
                }
             }
+            if (restOfArgs.length > 0) data = { ...restOfArgs, message: data, }
          }
       } else {
          // Just use the number keyed array as the rest of the object
