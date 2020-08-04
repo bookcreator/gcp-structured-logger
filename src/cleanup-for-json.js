@@ -37,6 +37,8 @@ module.exports = function cleanupForJSON(obj) {
             })
          } else if (Array.isArray(_obj)) {
             val = _obj.map((v, k) => convert(v, String(k)))
+         } else if (Symbol.iterator in _obj && typeof _obj[Symbol.iterator] === 'function') {
+            val = convert([..._obj], parentKey)
          } else {
             val = {}
             for (const k in _obj) val[k] = convert(_obj[k], k)

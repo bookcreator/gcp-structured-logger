@@ -141,6 +141,32 @@ describe('cleanup-for-json', function () {
             'hello': date.toISOString(),
          })
       })
+      it('should serialise object with Symbol.iterator function', function () {
+         const v = {
+            [Symbol.iterator]() {
+               const array = ['hello', 'world']
+               let nextIndex = 0
+               return {
+                  next: function () {
+                     return nextIndex < array.length ? {
+                        value: array[nextIndex++],
+                        done: false
+                     } : { done: true }
+                  }
+               }
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), ['hello', 'world'])
+      })
+      it('should serialise object with Symbol.iterator generator', function () {
+         const v = {
+            *[Symbol.iterator]() {
+               yield 'hello'
+               yield 'world'
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), ['hello', 'world'])
+      })
       it('should serialise to object using toJSON', function () {
          const v = {
             toJSON() {
