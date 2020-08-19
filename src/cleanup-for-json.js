@@ -22,7 +22,7 @@ module.exports = function cleanupForJSON(obj) {
 
       if (_obj !== null && typeof _obj === 'object') {
          // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
-         if (typeof _obj.toJSON === 'function') _obj = _obj.toJSON(parentKey)
+         if (typeof _obj.toJSON === 'function') return convert(_obj.toJSON(parentKey), parentKey)
          // Check if we've seen this reference before
          if (seenRefs.has(_obj)) return '[Circular]'
 

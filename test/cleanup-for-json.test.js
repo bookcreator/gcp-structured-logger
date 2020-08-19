@@ -241,5 +241,30 @@ describe('cleanup-for-json', function () {
 
          sinon.assert.calledOnceWithExactly(toJSON, 'map')
       })
+      it('should serialise to object using toJSON that returns array', function () {
+         const v = {
+            toJSON() {
+               return [{ hello: 'world' }]
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), [{ hello: 'world' }])
+      })
+      it('should serialise to object using toJSON that returns string', function () {
+         const v = {
+            toJSON() {
+               return 'hello'
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), 'hello')
+      })
+      it('should serialise to object using toJSON that returns null', function () {
+         const v = new Map()
+         v.set('key', {
+            toJSON() {
+               return null
+            }
+         })
+         assert.deepStrictEqual(cleanupForJSON(v), [{ key: 'key', value: null }])
+      })
    })
 })
