@@ -455,6 +455,20 @@ describe('StructuredLogger', function () {
             sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ error: { property: 'Hello' } }))
          })
 
+         it('should use include errors enumerable keys (with Error value)', function () {
+            const error = new Error()
+            error.property = 'Hello'
+            error.originalError = new Error('Underlying error')
+            logger.reportError(error)
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({
+               error: {
+                  property: 'Hello',
+                  originalError: sinonMatch.same(error.originalError)
+               }
+            }))
+         })
+
          it('should include error.user on context', function () {
             const USER = 'A_USER'
             const error = new Error()

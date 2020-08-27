@@ -118,6 +118,114 @@ describe('cleanup-for-json', function () {
       })
    })
 
+   describe('Errors', function () {
+      it('should serialise to object (base Error)', function () {
+         const e = new Error('Some error')
+         assert.deepStrictEqual(cleanupForJSON(e), {
+            name: 'Error',
+            stack: e.stack,
+            message: e.message,
+         })
+      })
+      it('should serialise to object (Error subclass)', function () {
+         const e = new TypeError('Some error')
+         assert.deepStrictEqual(cleanupForJSON(e), {
+            name: 'TypeError',
+            stack: e.stack,
+            message: e.message,
+         })
+      })
+      it('should serialise to object (Error prototype)', function () {
+         const e = Object.create(Error.prototype)
+         assert.deepStrictEqual(cleanupForJSON(e), {
+            name: 'Error',
+            stack: undefined,
+            message: '',
+         })
+      })
+      it('should serialise to object (custom Error subclass)', function () {
+         class CustomError extends Error { }
+         const e = new CustomError('Some error')
+         assert.deepStrictEqual(cleanupForJSON(e), {
+            name: 'CustomError',
+            stack: e.stack,
+            message: e.message,
+         })
+      })
+      it('should serialise nested Error to object', function () {
+         const err1 = new Error('Some error 1')
+         const err2 = new Error('Some error 2')
+         err2.code = 'ERROR_CODE'
+         const err3 = new TypeError('Some error 3')
+         const obj = {
+            error: err1,
+            array: [err2, err3]
+         }
+         assert.deepStrictEqual(cleanupForJSON(obj), {
+            error: {
+               name: 'Error',
+               stack: err1.stack,
+               message: err1.message,
+            },
+            array: [
+               {
+                  name: 'Error',
+                  stack: err2.stack,
+                  message: err2.message,
+                  code: err2.code,
+               },
+               {
+                  name: 'TypeError',
+                  stack: err3.stack,
+                  message: err3.message,
+               }
+            ]
+         })
+      })
+
+      context('Custom properties', function () {
+         it('should serialise to object (base Error)', function () {
+            const e = new Error('Some error')
+            e.code = 'ERROR_CODE'
+            assert.deepStrictEqual(cleanupForJSON(e), {
+               name: 'Error',
+               stack: e.stack,
+               message: e.message,
+               code: e.code,
+            })
+         })
+         it('should serialise to object (Error prototype)', function () {
+            const e = Object.create(Error.prototype)
+            e.code = 'ERROR_CODE'
+            assert.deepStrictEqual(cleanupForJSON(e), {
+               name: 'Error',
+               stack: undefined,
+               message: '',
+               code: e.code,
+            })
+         })
+         it('should serialise to object (custom Error subclass)', function () {
+            class CustomError extends Error {
+               constructor() {
+                  super('Some error')
+                  this.code = 'ERROR_CODE'
+                  this.properties = {
+                     hello: 'world'
+                  }
+               }
+            }
+            const e = new CustomError()
+            assert.deepStrictEqual(cleanupForJSON(e), {
+               name: 'CustomError',
+               stack: e.stack,
+               message: e.message,
+               code: e.code,
+               properties: e.properties,
+            })
+         })
+      })
+   })
+
    describe('Objects', function () {
       it('should serialise to object', function () {
          const v = {
