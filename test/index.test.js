@@ -56,18 +56,6 @@ describe('index.js', function () {
          })
          assert.deepStrictEqual(l._extraLabels, extraLabels)
       })
-      it('should use serviceContext for error reporter property', function () {
-         const serviceContext = {
-            service: 'tests',
-            version: 'debug'
-         }
-         const l = new logger.Logging({
-            projectId,
-            logName,
-            serviceContext
-         })
-         assert.deepStrictEqual(l._errorReporter._config._serviceContext, serviceContext)
-      })
       it('should add extractUser property', function () {
          const requestUserExtractor = {}
          const l = new logger.Logging({
@@ -84,6 +72,75 @@ describe('index.js', function () {
             serviceContext,
          })
          assert.instanceOf(l.logger, require('../src/StructuredLogger').StructuredLogger)
+      })
+      it('should logger property should reuse error reporter', function () {
+         const l = new logger.Logging({
+            projectId,
+            logName,
+            serviceContext,
+         })
+         const loggerE = l.logger._errorReporter()
+         assert.instanceOf(loggerE, require('@google-cloud/error-reporting').ErrorReporting)
+         // Should match Logging property
+         assert.strictEqual(loggerE, l._errorReporter)
+         assert.strictEqual(l.logger._errorReporter(), loggerE)
+      })
+      it('should use have serviceContext property', function () {
+         const serviceContext = {
+            service: 'tests',
+            version: 'debug'
+         }
+         const l = new logger.Logging({
+            projectId,
+            logName,
+            serviceContext
+         })
+         assert.deepStrictEqual(l._serviceContext, serviceContext)
+      })
+
+      context('#_errorReporter', function () {
+
+         it('should initially not be set', function () {
+            const serviceContext = {
+               service: 'tests',
+               version: 'debug'
+            }
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext
+            })
+            assert.notProperty(l, '__errorReporter')
+         })
+         it('should set after first call and use serviceContext', function () {
+            const serviceContext = {
+               service: 'tests',
+               version: 'debug'
+            }
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext
+            })
+            const e = l._errorReporter
+            assert.deepStrictEqual(e._config._serviceContext, serviceContext)
+            assert.deepPropertyVal(l, '__errorReporter', e)
+         })
+         it('should reuse previous value', function () {
+            const serviceContext = {
+               service: 'tests',
+               version: 'debug'
+            }
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext
+            })
+            const e = l._errorReporter
+            assert.deepStrictEqual(e._config._serviceContext, serviceContext)
+            assert.strictEqual(l._errorReporter, e)
+            assert.strictEqual(l._errorReporter, l._errorReporter)
+         })
       })
 
       context('#makeLoggingMiddleware', function () {

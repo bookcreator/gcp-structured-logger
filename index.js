@@ -14,6 +14,8 @@ const { LogSeverity } = require('./src/severity')
  * @typedef {import('express').Request & { readonly log: StructuredRequestLogger }} Request
  */
 
+const ERROR_REPORTING_PROP = '__errorReporter'
+
 class Logging {
 
    /**
@@ -28,18 +30,34 @@ class Logging {
     */
    constructor({ projectId, logName, serviceContext, requestUserExtractor, extraLabels }) {
       /** @readonly @private */
-      this._errorReporter = new ErrorReporting({
-         serviceContext,
-         reportUnhandledRejections: false,
-         // Don't report the errors - we'll manually log errors to include other info
-         reportMode: 'never',
-      })
+      this._serviceContext = Object.freeze({ ...serviceContext })
       /** @readonly @private */
       this._extraLabels = Object.assign({}, extraLabels)
       /** @readonly @private */
       this._extractUser = requestUserExtractor
       /** @readonly */
-      this.logger = new StructuredLogger(projectId, logName, this._errorReporter, extraLabels)
+      this.logger = new StructuredLogger(projectId, logName, () => this._errorReporter, extraLabels)
+   }
+
+   /**
+    * @private
+    * Used for all child logs of this Logging instance, lazily loaded.
+    */
+   get _errorReporter() {
+      /** @type {import('@google-cloud/error-reporting').ErrorReporting} */
+      let e
+      if (ERROR_REPORTING_PROP in this) {
+         e = this[ERROR_REPORTING_PROP]
+      } else {
+         e = new ErrorReporting({
+            serviceContext: this._serviceContext,
+            reportUnhandledRejections: false,
+            // Don't report the errors - we'll manually log errors to include other info
+            reportMode: 'never',
+         })
+         Object.defineProperty(this, ERROR_REPORTING_PROP, { value: e, enumerable: false, configurable: false })
+      }
+      return e
    }
 
    /**

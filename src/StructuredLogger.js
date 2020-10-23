@@ -47,7 +47,7 @@ class StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('@google-cloud/error-reporting').ErrorReporting} errorReporter
+    * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
     * @param {{ [key: string]: string }} [labels]
     */
    constructor(projectId, logName, errorReporter, labels) {
@@ -130,7 +130,7 @@ class StructuredLogger {
          severity = LogSeverity.ERROR
          if (err && typeof err === 'object' && err.severity) severity = err.severity
       }
-      const event = this._makeReportableError(this._errorReporter, err)
+      const event = this._makeReportableError(this._errorReporter(), err)
       // Remove report location as the stack trace is used
       delete event.context.reportLocation
       if (!event.context.user) delete event.context.user
@@ -291,7 +291,7 @@ class _StructuredRequestLogger extends StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('@google-cloud/error-reporting').ErrorReporting} errorReporter
+    * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
     * @param {{ [key: string]: string }} labels
     * @param {import('express').Request} request
     * @param {?ExtractUser} extractUser
