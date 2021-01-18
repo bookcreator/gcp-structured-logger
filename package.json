@@ -32,7 +32,7 @@
   "dependencies": {
     "@google-cloud/error-reporting": "^2.0.0",
     "@opencensus/propagation-stackdriver": "^0.0.22",
-    "semver": "^7.3.2"
+    "semver": "^7.3.4"
   },
   "devDependencies": {
     "chai": "^4.2.0",
