@@ -209,9 +209,9 @@
     teeny-request "^7.0.0"
 
 "@google-cloud/error-reporting@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@google-cloud/error-reporting/-/error-reporting-2.0.0.tgz#cea112c45ba32d381091bdaef0b19e108ef3bf97"
-  integrity sha512-c8xw2wUaLgR6W0qML2FWtWjG/OplTY/QrJjQ3X2AFFG6d660yUYq4CLXeHG8xWTmOxnU3WBEMbT8l51U5qw0tg==
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@google-cloud/error-reporting/-/error-reporting-2.0.1.tgz#282e1bc5d09bc2a75ac33186a2f3a846208ce5d8"
+  integrity sha512-P8r2RFKB0BqZmWkNmTSSqn8GZJuhSUYaFswQZ5yZBypaaAMET0+kPBRYX3O2HuxnFevb9xVpeE7WJwp3emtXfw==
   dependencies:
     "@google-cloud/common" "^3.0.0"
     console-log-level "^1.4.1"
