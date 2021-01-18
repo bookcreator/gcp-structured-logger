@@ -30,7 +30,7 @@
     "postversion": "git push --follow-tags"
   },
   "dependencies": {
-    "@google-cloud/error-reporting": "^2.0.0",
+    "@google-cloud/error-reporting": "^2.0.1",
     "@opencensus/propagation-stackdriver": "^0.0.22",
     "semver": "^7.3.4"
   },
