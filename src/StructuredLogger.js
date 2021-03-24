@@ -341,8 +341,17 @@ class _StructuredRequestLogger extends StructuredLogger {
  * Matches:
  * *`    at <CLS>.reportError (<__filename>:<LN>:<CN>)`
  * *`    at <CLS>._makeReportableError (<__filename>:<LN>:<CN>)`
+ * Or with source maps:
+ * *```
+ *       at <CLS>.reportError (<__filename>:<LN>:<CN>)
+ *          -> <__filename>:<LN>:<CN>
+ * ```
+ * *```
+ *       at <CLS>._makeReportableError (<__filename>:<LN>:<CN>)
+ *          -> <__filename>:<LN>:<CN>
+ * ```
  */
-const reportErrorMatcher = new RegExp(`^.+\\.(?:${StructuredLogger.prototype.reportError.name}|${_StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n`, 'gm')
+const reportErrorMatcher = new RegExp(`^.+\\.(?:${StructuredLogger.prototype.reportError.name}|${_StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
 
 /**
  * @typedef {_StructuredRequestLogger} StructuredRequestLogger

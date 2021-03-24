@@ -11,7 +11,8 @@
          "restart": true,
          "protocol": "inspector",
          "port": 50000,
-         "timeout": 60000
+         "timeout": 60000,
+         "sourceMaps": true
       }
    ]
 }
