@@ -2,7 +2,7 @@ const tracePropagation = require('@opencensus/propagation-stackdriver')
 
 /**
  * @param {string} projectId
- * @param {import('express').Request} req
+ * @param {import('express-serve-static-core').Request} req
  */
 module.exports = function traceContext(projectId, req) {
    const context = tracePropagation.extract({

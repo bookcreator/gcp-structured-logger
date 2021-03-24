@@ -14,7 +14,10 @@ module.exports = function cleanupForJSON(obj) {
    // Use weak here so we don't capture anything
    const seenRefs = new WeakSet()
 
-   /** @param {object} _obj */
+   /**
+    * @param {any} _obj
+    * @returns {any}
+    */
    function convert(_obj, parentKey = '') {
       if (Buffer.isBuffer(_obj)) return _obj.toString('base64')
       if (types.isDate(_obj)) return _obj.toISOString()

@@ -16,7 +16,7 @@ describe('index.js', function () {
 
    describe('Logging', function () {
 
-      /** @param {Partial<import('express').Request>} obj */
+      /** @param {Partial<import('express-serve-static-core').Request>} obj */
       const make = (obj = { headers: {} }) => ({
          ...obj,
          get(key) {
@@ -170,7 +170,7 @@ describe('index.js', function () {
 
             m(req, resStub, nextStub)
 
-            assert.instanceOf(req.log, require('../src/StructuredLogger')._StructuredRequestLogger)
+            assert.instanceOf(req.log, require('../src/StructuredLogger').StructuredRequestLogger)
             sinon.assert.calledOnceWithExactly(nextStub)
          })
 

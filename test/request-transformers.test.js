@@ -4,7 +4,7 @@ const { requestToHttpRequest, requestToErrorReportingHttpRequest } = require('..
 
 describe('request-transformers', function () {
 
-   /** @param {Partial<import('express').Request>} obj */
+   /** @param {Partial<import('express-serve-static-core').Request>} obj */
    const make = (obj = { headers: {} }) => ({
       ...obj,
       get(key) {

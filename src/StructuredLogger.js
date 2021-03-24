@@ -68,11 +68,11 @@ class StructuredLogger {
 
    /**
     * @private
-    * @param {import('express').Request} request
-    * @param {?ExtractUser} extractUser
+    * @param {import('express-serve-static-core').Request} request
+    * @param {?import('../').ExtractUser} extractUser
     */
    _requestChild(request, extractUser) {
-      return new _StructuredRequestLogger(this._projectId, this._logName, this._errorReporter, { ...this._labels, type: 'request' }, request, extractUser)
+      return new StructuredRequestLogger(this._projectId, this._logName, this._errorReporter, { ...this._labels, type: 'request' }, request, extractUser)
    }
 
    /** @param {any[]} args */
@@ -286,15 +286,15 @@ class StructuredLogger {
    }
 }
 
-class _StructuredRequestLogger extends StructuredLogger {
+class StructuredRequestLogger extends StructuredLogger {
 
    /**
     * @param {string} projectId
     * @param {string} logName
     * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
     * @param {{ [key: string]: string }} labels
-    * @param {import('express').Request} request
-    * @param {?ExtractUser} extractUser
+    * @param {import('express-serve-static-core').Request} request
+    * @param {?import('../').ExtractUser} extractUser
     */
    constructor(projectId, logName, errorReporter, labels, request, extractUser) {
       super(projectId, logName, errorReporter, labels)
@@ -351,11 +351,6 @@ class _StructuredRequestLogger extends StructuredLogger {
  *          -> <__filename>:<LN>:<CN>
  * ```
  */
-const reportErrorMatcher = new RegExp(`^.+\\.(?:${StructuredLogger.prototype.reportError.name}|${_StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
+const reportErrorMatcher = new RegExp(`^.+\\.(?:${StructuredLogger.prototype.reportError.name}|${StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
 
-/**
- * @typedef {_StructuredRequestLogger} StructuredRequestLogger
- * @typedef {(req: import('express').Request) => (string | null | void)} ExtractUser
- */
-
-module.exports = { StructuredLogger, _StructuredRequestLogger }
+module.exports = { StructuredLogger, StructuredRequestLogger }

@@ -4,8 +4,10 @@
   "description": "Structured logger for GCP logging",
   "main": "index.js",
   "files": [
-    "src/**/*.js"
+    "src/**/*.js",
+    "index.d.ts"
   ],
+  "types": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/bookcreator/gcp-structured-logger"
@@ -35,6 +37,7 @@
     "semver": "^7.3.4"
   },
   "devDependencies": {
+    "@types/express-serve-static-core": "^4.17.19",
     "chai": "^4.2.0",
     "eslint": "^7.18.0",
     "eslint-plugin-node": "^11.1.0",

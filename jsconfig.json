@@ -6,6 +6,7 @@
       "lib": [
          "ES2018"
       ],
+      "noEmit": true,
       "checkJs": true
    },
    "typeAcquisition": {

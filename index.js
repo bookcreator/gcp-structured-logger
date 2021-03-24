@@ -4,30 +4,11 @@ const { ErrorReporting } = require('@google-cloud/error-reporting')
 const { StructuredLogger } = require('./src/StructuredLogger')
 const { LogSeverity } = require('./src/severity')
 
-/**
- * @typedef {{ service: string, version?: string }} ServiceContext
- *
- *
- * @typedef {InstanceType<import('./src/StructuredLogger')['StructuredLogger']>} StructuredLogger
- * @typedef {import('./src/StructuredLogger').StructuredRequestLogger} StructuredRequestLogger
- *
- * @typedef {import('express').Request & { readonly log: StructuredRequestLogger }} Request
- */
-
 const ERROR_REPORTING_PROP = '__errorReporter'
 
 class Logging {
 
-   /**
-    * @typedef {object} Options
-    * @prop {string} projectId GCP project ID.
-    * @prop {string} logName Used for `log_name` label.
-    * @prop {ServiceContext} serviceContext Used for error reporting.
-    * @prop {import('./src/StructuredLogger').ExtractUser} [requestUserExtractor] Function to get a user from a request to apply to error reports.
-    * @prop {{ [labelName: string]: string }} [extraLabels={}] Extra labels to apply to all logs.
-    *
-    * @param {Options} opts
-    */
+   /** @param {import('./').LoggingConfig} opts */
    constructor({ projectId, logName, serviceContext, requestUserExtractor, extraLabels }) {
       /** @readonly @private */
       this._serviceContext = Object.freeze({ ...serviceContext })
@@ -62,14 +43,14 @@ class Logging {
 
    /**
     * @private
-    * @param {import('express').Request} req
+    * @param {import('express-serve-static-core').Request} req
     */
    _makeRequestLog(req) {
       // @ts-ignore
       return this.logger._requestChild(req, this._extractUser)
    }
 
-   /** @returns {import('express').RequestHandler} */
+   /** @returns {import('express-serve-static-core').RequestHandler} */
    makeLoggingMiddleware() {
       return (req, res, next) => {
          Object.defineProperty(req, 'log', { value: this._makeRequestLog(req), enumerable: true, configurable: false })
@@ -79,10 +60,10 @@ class Logging {
 
    /**
     * This should be attached after adding the result of `makeLoggingMiddleware`
-    * @returns  {import('express').ErrorRequestHandler}
+    * @returns  {import('express-serve-static-core').ErrorRequestHandler}
     */
    makeErrorMiddleware() {
-      return (err, /** @type {Request} */ req, res, next) => {
+      return (err, /** @type {import('express-serve-static-core').Request} */ req, res, next) => {
          const self = this
          // Log client errors (400) as warnings
          const asWarning = (err.statusCode || err.status) < 500

@@ -1,4 +1,3 @@
-const { EventEmitter } = require('events')
 const { assert } = require('chai')
 const { createSandbox, match: sinonMatch } = require('sinon')
 const { LogSeverity } = require('..')
@@ -58,7 +57,7 @@ describe('StructuredLogger', function () {
       emergency: LogSeverity.EMERGENCY,
    }
 
-   /** @param {Partial<import('express').Request>} obj */
+   /** @param {Partial<import('express-serve-static-core').Request>} obj */
    const make = (obj = { headers: {} }) => ({
       ...obj,
       get(key) {
@@ -111,11 +110,11 @@ describe('StructuredLogger', function () {
       const req = make()
       const l = new loggers.StructuredLogger(projectId, logName, errorReporter)._requestChild(req)
 
-      assert.instanceOf(l, loggers._StructuredRequestLogger)
+      assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'request' })
-      // _StructuredRequestLogger
+      // StructuredRequestLogger
       assert.propertyVal(l, '_errorReporter', errorReporter)
       assert.propertyVal(l, '_request', req)
       assert.isUndefined(l._extractUser)
@@ -130,11 +129,11 @@ describe('StructuredLogger', function () {
       }
       const l = new loggers.StructuredLogger(projectId, logName, errorReporter, labels)._requestChild(req, extractUser)
 
-      assert.instanceOf(l, loggers._StructuredRequestLogger)
+      assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels, type: 'request' })
-      // _StructuredRequestLogger
+      // StructuredRequestLogger
       assert.propertyVal(l, '_errorReporter', errorReporter)
       assert.propertyVal(l, '_request', req)
       assert.propertyVal(l, '_extractUser', extractUser)
@@ -504,7 +503,7 @@ describe('StructuredLogger', function () {
       })
    })
 
-   context('_StructuredRequestLogger', function () {
+   context('StructuredRequestLogger', function () {
 
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger

@@ -14,7 +14,7 @@
  * @prop {?number} [responseSize]
  * @prop {?{ seconds: number, nanos?: number }} [latency]
  *
- * @param {import('express').Request} req
+ * @param {import('express-serve-static-core').Request} req
  * @returns {LoggingHttpRequest}
  */
 function requestToHttpRequest(req) {
@@ -48,7 +48,7 @@ function requestToHttpRequest(req) {
  * Converts a request (and its attached response) to a HttpRequestContext for Stackdriver error reporting.
  * See https://cloud.google.com/error-reporting/reference/rest/v1beta1/ErrorContext#httprequestcontext
  *
- * @param {import('express').Request} req
+ * @param {import('express-serve-static-core').Request} req
  */
 function requestToErrorReportingHttpRequest(req) {
    /** @type {import('@google-cloud/error-reporting/build/src/request-extractors/manual').Request} */
