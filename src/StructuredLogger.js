@@ -324,16 +324,9 @@ class StructuredRequestLogger extends StructuredLogger {
     * @param {LogEntry} entry
     * @param {object | string} data
     */
-   _write({ timestamp, ..._metadata }, data) {
-      /** @type {Pick<LogEntry, 'timestamp'> & Partial<Omit<LogEntry, 'timestamp'>>} */
-      const metadata = {
-         timestamp,
-      }
-      if (this._trace) {
-         metadata.trace = this._trace.trace
-         metadata.spanId = this._trace.spanId
-      }
-      super._write({ ...metadata, ..._metadata }, data)
+   _write(entry, data) {
+      // Inject trace
+      super._write({ ...this._trace, ...entry }, data)
    }
 }
 

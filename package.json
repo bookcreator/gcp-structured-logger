@@ -21,7 +21,7 @@
   },
   "license": "ISC",
   "engines": {
-    "node": ">=10"
+    "node": ">=10.4"
   },
   "scripts": {
     "lint": "eslint --cache --fix .",
@@ -32,8 +32,7 @@
     "postversion": "git push --follow-tags"
   },
   "dependencies": {
-    "@google-cloud/error-reporting": "^2.0.1",
-    "@opencensus/propagation-stackdriver": "^0.0.22"
+    "@google-cloud/error-reporting": "^2.0.1"
   },
   "devDependencies": {
     "@types/express-serve-static-core": "^4.17.19",

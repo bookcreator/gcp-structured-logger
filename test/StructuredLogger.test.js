@@ -265,7 +265,6 @@ describe('StructuredLogger', function () {
             it('should concatenate non-object arguments', function () {
                const date = new Date()
                const bigInt = '123432432432423432423'
-               // eslint-disable-next-line node/no-unsupported-features/es-builtins
                const args = ['hello', 'world', date, 1, false, true, 0, 1.2, /b\\o\n(o\))/ig, undefined, null, BigInt(bigInt)]
 
                logger.log(...args)
@@ -275,7 +274,6 @@ describe('StructuredLogger', function () {
 
             it('should concatenate non-object arguments up to first object', function () {
                const date = new Date()
-               // eslint-disable-next-line node/no-unsupported-features/es-builtins
                const bigInt = BigInt('123432432432423432423')
                const args = ['hello', 'world', date, 1, false, true, 0, { hello: 'world' }, 1.2, /b\\o\n(o\))/ig, undefined, null, bigInt]
 
