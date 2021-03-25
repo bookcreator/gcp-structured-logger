@@ -420,6 +420,60 @@ describe('index.js', function () {
             sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.ERROR })), sinonMatch({ timestamp: sinonMatch.date }), sinonMatch({ message: sinonMatch(error.message) }))
          })
       })
+
+      describe('_resolveUncaughtExceptionType', function () {
+
+         const fallbackValues = [
+            null,
+            false,
+            '',
+            'v',
+            '1',
+            'blah',
+            '12',
+            '14'
+         ]
+         for (const v of fallbackValues) {
+            it(`should fallback to 'uncaughtException' for invalid value '${v}'`, function () {
+               assert.strictEqual(logger.Logging._resolveUncaughtExceptionType(v), 'uncaughtException')
+            })
+         }
+
+         const uncaughtExceptionValues = [
+            '8.20.0',
+            '10.21.0',
+            '11.22.0',
+            '12.16.99',
+            '13.6.99'
+         ]
+         for (const _v of uncaughtExceptionValues) {
+            for (const v of [_v, 'v' + _v]) {
+               it(`should use 'uncaughtException' for unsupported version '${v}'`, function () {
+                  assert.strictEqual(logger.Logging._resolveUncaughtExceptionType(v), 'uncaughtException')
+               })
+            }
+         }
+
+         const uncaughtExceptionMonitorValues = [
+            '12.17',
+            '12.17.0',
+            '12.17.1',
+            '12.18.0',
+            '13.7',
+            '13.7.0',
+            '13.7.1',
+            '13.8.0',
+            '14.0.0',
+            '16.0.0',
+         ]
+         for (const _v of uncaughtExceptionMonitorValues) {
+            for (const v of [_v, 'v' + _v]) {
+               it(`should use 'uncaughtExceptionMonitor' for supported version '${v}'`, function () {
+                  assert.strictEqual(logger.Logging._resolveUncaughtExceptionType(v), 'uncaughtExceptionMonitor')
+               })
+            }
+         }
+      })
    })
 
    describe('LogSeverity', function () {

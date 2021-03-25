@@ -1,5 +1,4 @@
 const { finished } = require('stream')
-const semverGte = require('semver/functions/gte')
 const { ErrorReporting } = require('@google-cloud/error-reporting')
 const { StructuredLogger } = require('./src/StructuredLogger')
 const { LogSeverity } = require('./src/severity')
@@ -91,9 +90,7 @@ class Logging {
          loggingTo.reportError(err)
       }
 
-      // https://nodejs.org/docs/latest-v12.x/api/process.html#process_event_uncaughtexceptionmonitor
-      /* istanbul ignore next */
-      const uncaughtExceptionType = semverGte(process.version, '12.17.0') ? 'uncaughtExceptionMonitor' : 'uncaughtException'
+      const uncaughtExceptionType = Logging._resolveUncaughtExceptionType()
 
       process.on('unhandledRejection', onUnhandledRejection)
       process.on(uncaughtExceptionType, onUncaughtException)
@@ -102,6 +99,24 @@ class Logging {
          process.off('unhandledRejection', onUnhandledRejection)
          process.off(uncaughtExceptionType, onUncaughtException)
       }
+   }
+
+   /**
+    * @private
+    * @see https://nodejs.org/docs/latest-v12.x/api/process.html#process_event_uncaughtexceptionmonitor
+    * @param {string} version
+    */
+   static _resolveUncaughtExceptionType(version = process.version) {
+      // vX.Y.Z
+      const versionArgs = /^v?(\d+)\.(\d+)(?:\.\d+)?$/.exec(version)
+      if (versionArgs) {
+         const [major, minor] = [parseInt(versionArgs[1]), parseInt(versionArgs[2])]
+         if (major > 13 || (major === 13 && minor >= 7) || (major === 12 && minor >= 17)) {
+            // Added in v12.17.0 and v13.7.0
+            return 'uncaughtExceptionMonitor'
+         }
+      }
+      return 'uncaughtException'
    }
 }
 
