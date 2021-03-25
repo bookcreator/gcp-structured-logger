@@ -9,6 +9,10 @@ describe('StructuredLogger', function () {
    let loggers
    /** @type {sinon.SinonStub<[], import('@google-cloud/error-reporting').ErrorReporting>} */
    let errorReporter
+   /** @type {string} */
+   let NODE_ENV
+   /** @type {sinon.SinonFakeTimers} */
+   let fakeTimers
    before(function () {
       loggers = require('../src/StructuredLogger')
       const { ErrorReporting } = require('@google-cloud/error-reporting')
@@ -21,12 +25,8 @@ describe('StructuredLogger', function () {
       sinon.restore()
    })
    beforeEach(function () {
-      errorReporter.resetHistory()
-   })
+      errorReporter.resetHistory();
 
-   /** @type {string} */
-   let NODE_ENV
-   beforeEach(function () {
       ({ NODE_ENV } = process.env)
    })
    afterEach(function () {
@@ -35,11 +35,7 @@ describe('StructuredLogger', function () {
       } else {
          process.env.NODE_ENV = NODE_ENV
       }
-   })
 
-   /** @type {sinon.SinonFakeTimers} */
-   let fakeTimers
-   afterEach(function () {
       if (fakeTimers) fakeTimers.restore()
       fakeTimers = null
    })
@@ -372,12 +368,13 @@ describe('StructuredLogger', function () {
          })
 
          context('NODE_ENV=production', function () {
+            let consoleFn
+            before(function () {
+               consoleFn = require('../src/severity').CONSOLE_SEVERITY[LogSeverity.DEFAULT]
+            })
             beforeEach(function () {
                process.env.NODE_ENV = 'production'
             })
-
-            const severity = LogSeverity.DEFAULT
-            const consoleFn = require('../src/severity').CONSOLE_SEVERITY[severity]
 
             it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
                const severity = LogSeverity.DEFAULT

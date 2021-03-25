@@ -1,9 +1,10 @@
 {
-   "extends": "../.eslintrc.json",
-   "env": {
-      "mocha": true
-   },
+   "extends": [
+      "../.eslintrc.json",
+      "plugin:mocha/recommended"
+   ],
    "rules": {
+      "mocha/no-setup-in-describe": "off",
       "node/global-require": "off",
       "no-loop-func": "off",
       "no-unused-vars": "off"
