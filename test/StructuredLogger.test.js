@@ -264,6 +264,28 @@ describe('StructuredLogger', function () {
 
             it('should concatenate non-object arguments', function () {
                const date = new Date()
+               const args = ['hello', 'world', date, 1, false, true, 0, 1.2, /b\\o\n(o\))/ig, undefined, null, 1234324324324234]
+
+               logger.log(...args)
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, `hello world ${date.toISOString()} 1 false true 0 1.2 /b\\\\o\\n(o\\))/gi undefined null 1234324324324234`)
+            })
+
+            it('should concatenate non-object arguments up to first object', function () {
+               const date = new Date()
+               const number = 1234324324324234
+               const args = ['hello', 'world', date, 1, false, true, 0, { hello: 'world' }, 1.2, /b\\o\n(o\))/ig, undefined, null, number]
+
+               logger.log(...args)
+
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message: `hello world ${date.toISOString()} 1 false true 0`, ...[{ hello: 'world' }, 1.2, /b\\o\n(o\))/ig, undefined, null, number] })
+            })
+
+            // eslint-disable-next-line node/no-unsupported-features/es-builtins
+            const bigIntTest = global.BigInt ? it : it.skip
+
+            bigIntTest('should concatenate non-object arguments (with BitInt)', function () {
+               const date = new Date()
                const bigInt = '123432432432423432423'
                // eslint-disable-next-line node/no-unsupported-features/es-builtins
                const args = ['hello', 'world', date, 1, false, true, 0, 1.2, /b\\o\n(o\))/ig, undefined, null, BigInt(bigInt)]
@@ -273,7 +295,7 @@ describe('StructuredLogger', function () {
                assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, `hello world ${date.toISOString()} 1 false true 0 1.2 /b\\\\o\\n(o\\))/gi undefined null ${bigInt}`)
             })
 
-            it('should concatenate non-object arguments up to first object', function () {
+            bigIntTest('should concatenate non-object arguments up to first object (with BitInt)', function () {
                const date = new Date()
                // eslint-disable-next-line node/no-unsupported-features/es-builtins
                const bigInt = BigInt('123432432432423432423')
