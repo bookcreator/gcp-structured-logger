@@ -203,8 +203,9 @@ describe('StructuredLogger', function () {
                const circular = { blah: 1 }
                circular.circular = circular
                const date = new Date()
+               const data = Buffer.from('Hello, world!', 'utf8')
                const message = 'hello'
-               const data1 = { thing: 'world', blah: [/d/, date] }
+               const data1 = { thing: 'world', blah: [/d/, date], base64: data }
                const data2 = { hello: 12, circular }
 
                logger.log(message, data1, data2)
@@ -216,11 +217,17 @@ describe('StructuredLogger', function () {
                      ...data1,
                      blah: [
                         {
+                           '@type': 'RegExp',
                            source: 'd',
                            flags: ''
                         },
                         date.toISOString(),
-                     ]
+                     ],
+                     base64: {
+                        '@type': 'Buffer',
+                        length: data.length,
+                        base64: data.toString('base64')
+                     }
                   },
                   '1': {
                      ...data2,

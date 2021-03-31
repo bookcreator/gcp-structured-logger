@@ -19,9 +19,17 @@ module.exports = function cleanupForJSON(obj) {
     * @returns {any}
     */
    function convert(_obj, parentKey = '') {
-      if (Buffer.isBuffer(_obj)) return _obj.toString('base64')
+      if (Buffer.isBuffer(_obj)) return {
+         '@type': 'Buffer',
+         length: _obj.length,
+         base64: _obj.toString('base64')
+      }
+      if (types.isRegExp(_obj)) return {
+         '@type': 'RegExp',
+         source: _obj.source,
+         flags: _obj.flags
+      }
       if (types.isDate(_obj)) return _obj.toISOString()
-      if (types.isRegExp(_obj)) return { source: _obj.source, flags: _obj.flags }
 
       if (_obj !== null && typeof _obj === 'object') {
          // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior

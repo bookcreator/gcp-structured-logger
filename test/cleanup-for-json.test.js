@@ -6,9 +6,13 @@ const cleanupForJSON = require('../src/cleanup-for-json')
 describe('cleanup-for-json', function () {
 
    describe('Buffers', function () {
-      it('should seralise to base64 encoded string', function () {
+      it('should seralise to object', function () {
          const v = require('crypto').randomBytes(25)
-         assert.strictEqual(cleanupForJSON(v), v.toString('base64'))
+         assert.deepStrictEqual(cleanupForJSON(v), {
+            '@type': 'Buffer',
+            length: v.length,
+            base64: v.toString('base64')
+         })
       })
    })
 
@@ -22,11 +26,19 @@ describe('cleanup-for-json', function () {
    describe('RegExp', function () {
       it('should serialise literal to object', function () {
          const v = /abcde\(f/ig
-         assert.deepStrictEqual(cleanupForJSON(v), { source: 'abcde\\(f', flags: 'gi' })
+         assert.deepStrictEqual(cleanupForJSON(v), {
+            '@type': 'RegExp',
+            source: 'abcde\\(f',
+            flags: 'gi',
+         })
       })
       it('should serialise constructed to object', function () {
          const v = new RegExp('abcde\\(f', 'mig')
-         assert.deepStrictEqual(cleanupForJSON(v), { source: 'abcde\\(f', flags: 'gim' })
+         assert.deepStrictEqual(cleanupForJSON(v), {
+            '@type': 'RegExp',
+            source: 'abcde\\(f',
+            flags: 'gim',
+         })
       })
    })
 
@@ -37,7 +49,7 @@ describe('cleanup-for-json', function () {
       it('should serialise contents with same order', function () {
          const data = require('crypto').randomBytes(25)
          const date = new Date()
-         assert.sameDeepMembers(cleanupForJSON([data, /abcde\(f/ig, date]), [data.toString('base64'), { source: 'abcde\\(f', flags: 'gi' }, date.toISOString()])
+         assert.sameDeepMembers(cleanupForJSON([data, /abcde\(f/ig, date]), [{ '@type': 'Buffer', length: data.length, base64: data.toString('base64') }, { '@type': 'RegExp', source: 'abcde\\(f', flags: 'gi' }, date.toISOString()])
       })
       it('should replace circular references', function () {
          const v = [123]
@@ -53,7 +65,7 @@ describe('cleanup-for-json', function () {
       it('should serialise contents', function () {
          const data = require('crypto').randomBytes(25)
          const date = new Date()
-         assert.deepStrictEqual(cleanupForJSON(new Set([data, /abcde\(f/ig, date])), [data.toString('base64'), { source: 'abcde\\(f', flags: 'gi' }, date.toISOString()])
+         assert.deepStrictEqual(cleanupForJSON(new Set([data, /abcde\(f/ig, date])), [{ '@type': 'Buffer', length: data.length, base64: data.toString('base64') }, { '@type': 'RegExp', source: 'abcde\\(f', flags: 'gi' }, date.toISOString()])
       })
       it('should replace circular references', function () {
          const v = new Set([123])
@@ -82,8 +94,8 @@ describe('cleanup-for-json', function () {
          v.set('2', data)
          v.set('hello', date)
          assert.deepStrictEqual(cleanupForJSON(v), [
-            { key: 1, value: { source: 'abcde\\(f', flags: 'gi' } },
-            { key: '2', value: data.toString('base64') },
+            { key: 1, value: { '@type': 'RegExp', source: 'abcde\\(f', flags: 'gi' } },
+            { key: '2', value: { '@type': 'Buffer', length: data.length, base64: data.toString('base64') } },
             { key: 'hello', value: date.toISOString() },
          ])
       })
@@ -95,8 +107,8 @@ describe('cleanup-for-json', function () {
          v.set(data, '2')
          v.set(date, 'hello')
          assert.deepStrictEqual(cleanupForJSON(v), [
-            { key: { source: 'abcde\\(f', flags: 'gi' }, value: 1 },
-            { key: data.toString('base64'), value: '2' },
+            { key: { '@type': 'RegExp', source: 'abcde\\(f', flags: 'gi' }, value: 1 },
+            { key: { '@type': 'Buffer', length: data.length, base64: data.toString('base64') }, value: '2' },
             { key: date.toISOString(), value: 'hello' },
          ])
       })
@@ -244,8 +256,8 @@ describe('cleanup-for-json', function () {
             'hello': date
          }
          assert.deepStrictEqual(cleanupForJSON(v), {
-            1: { source: 'abcde\\(f', flags: 'gi' },
-            '2': data.toString('base64'),
+            1: { '@type': 'RegExp', source: 'abcde\\(f', flags: 'gi' },
+            '2': { '@type': 'Buffer', length: data.length, base64: data.toString('base64') },
             'hello': date.toISOString(),
          })
       })
