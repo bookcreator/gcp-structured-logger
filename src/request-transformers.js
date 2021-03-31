@@ -1,26 +1,13 @@
 /**
  * Converts a request (and its attached response) to a HttpRequest for Stackdriver LogEntry.
- * See https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#httprequest
- *
- * @typedef {object} LoggingHttpRequest
- * @prop {string} requestMethod
- * @prop {string} requestUrl
- * @prop {?string} [remoteIp]
- * @prop {?string} [referer]
- * @prop {?string} [userAgent]
- * @prop {?string} [protocol]
- * @prop {?number} [status]
- * @prop {?number} [requestSize]
- * @prop {?number} [responseSize]
- * @prop {?{ seconds: number, nanos?: number }} [latency]
  *
  * @param {import('express-serve-static-core').Request} req
- * @returns {LoggingHttpRequest}
+ * @returns {import('../').LoggingHttpRequest}
  */
 function requestToHttpRequest(req) {
    // Copy from reporting
    const { url, method, ...reportingReq } = requestToErrorReportingHttpRequest(req)
-   /** @type {LoggingHttpRequest} */
+   /** @type {import('../').LoggingHttpRequest} */
    const httpReq = {
       requestUrl: url,
       requestMethod: method,

@@ -69,19 +69,30 @@ describe('StructuredLogger', function () {
    const logName = 'log-name'
 
    it('should create object', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.propertyVal(l, '_productionTransport', null)
       assert.deepPropertyVal(l, '_labels', { log_name: logName })
       sinon.assert.notCalled(errorReporter)
+   })
+
+   it('should create object with provided production transport', function () {
+      const productionTransport = () => { }
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, null)
+
+      assert.propertyVal(l, '_projectId', projectId)
+      assert.propertyVal(l, '_logName', logName)
+      assert.propertyVal(l, '_productionTransport', productionTransport)
+      assert.deepPropertyVal(l, '_labels', { log_name: logName })
    })
 
    it('should create object with extra labels', function () {
       const labels = {
          hello: 'world'
       }
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, labels)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null, labels)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
@@ -89,26 +100,30 @@ describe('StructuredLogger', function () {
    })
 
    it('should create child logger with provided type', function () {
+      const productionTransport = () => { }
       const labels = {
          hello: 'world'
       }
       const type = 'TYPE'
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, labels).child(type)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, labels).child(type)
 
       assert.instanceOf(l, loggers.StructuredLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels, type })
       sinon.assert.notCalled(errorReporter)
    })
 
    it('should create request logger', function () {
+      const productionTransport = () => { }
       const req = make()
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null)._requestChild(req)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, null)._requestChild(req)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'request' })
       // StructuredRequestLogger
       assert.propertyVal(l, '_errorReporter', errorReporter)
@@ -118,16 +133,18 @@ describe('StructuredLogger', function () {
    })
 
    it('should create request logger with extractUser', function () {
+      const productionTransport = () => { }
       const req = make()
       const extractUser = sinon.stub()
       const labels = {
          hello: 'world'
       }
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, labels)._requestChild(req, extractUser)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, labels)._requestChild(req, extractUser)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels, type: 'request' })
       // StructuredRequestLogger
       assert.propertyVal(l, '_errorReporter', errorReporter)
@@ -137,7 +154,7 @@ describe('StructuredLogger', function () {
    })
 
    it('should use same error reporter each time', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
 
       const e1 = l._errorReporter()
       sinon.assert.calledOnceWithExactly(errorReporter)
@@ -153,7 +170,7 @@ describe('StructuredLogger', function () {
       /** @type {sinon.SinonSpy} */
       let writeSpy
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
+         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
          writeSpy = sinon.spy(logger, '_write')
       })
       beforeEach(function () {
@@ -370,43 +387,122 @@ describe('StructuredLogger', function () {
             })
          })
 
-         context('NODE_ENV=production', function () {
-            let consoleFn
-            before(function () {
-               consoleFn = require('../src/severity').CONSOLE_SEVERITY[LogSeverity.DEFAULT]
+         describe('NODE_ENV=production', function () {
+
+            context('without productionTransport', function () {
+               let consoleFn
+               before(function () {
+                  consoleFn = require('../src/severity').CONSOLE_SEVERITY[LogSeverity.DEFAULT]
+               })
+               beforeEach(function () {
+                  process.env.NODE_ENV = 'production'
+               })
+
+               it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
+                  const severity = LogSeverity.DEFAULT
+
+                  logger._write({ timestamp: new Date() }, '')
+
+                  assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), { severity })
+               })
+
+               it('should spread non-conflicting arguments', function () {
+                  const message = 'message'
+                  const messageData = {
+                     severity__: LogSeverity.WARNING,
+                  }
+
+                  logger.log(message, messageData)
+
+                  assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), messageData)
+               })
+
+               it('should wrap conflicting arguments in messageData object when data has conflicting property names', function () {
+                  const message = 'message'
+                  const messageData = {
+                     severity: LogSeverity.WARNING,
+                  }
+
+                  logger.log(message, messageData)
+
+                  assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), { messageData })
+               })
             })
-            beforeEach(function () {
-               process.env.NODE_ENV = 'production'
-            })
 
-            it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
-               const severity = LogSeverity.DEFAULT
+            context('with productionTransport', function () {
 
-               logger._write({ timestamp: new Date() }, '')
+               const productionTransport = sinon.spy(/** @type {import('../').Transport} */_entry => { })
+               before(function () {
+                  logger = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, null)
+                  writeSpy = sinon.spy(logger, '_write')
+               })
+               beforeEach(function () {
+                  process.env.NODE_ENV = 'production'
+                  productionTransport.resetHistory()
+               })
 
-               assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), { severity })
-            })
+               it('should include serialised timestamp', function () {
+                  const severity = LogSeverity.DEBUG
+                  const timestamp = new Date(1617182524522)
 
-            it('should spread non-conflicting arguments', function () {
-               const message = 'message'
-               const messageData = {
-                  severity__: LogSeverity.WARNING,
-               }
+                  logger._write({ timestamp, severity }, '')
 
-               logger.log(message, messageData)
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522e6 }, severity }), {})
+               })
 
-               assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), messageData)
-            })
+               it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
+                  const severity = LogSeverity.DEFAULT
 
-            it('should wrap conflicting arguments in messageData object when data has conflicting property names', function () {
-               const message = 'message'
-               const messageData = {
-                  severity: LogSeverity.WARNING,
-               }
+                  logger._write({ timestamp: new Date() }, '')
 
-               logger.log(message, messageData)
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity }), {})
+               })
 
-               assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), { messageData })
+               it('should use message as data parameter', function () {
+                  const message = 'message'
+
+                  logger._write({ timestamp: new Date() }, message)
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), message)
+               })
+
+               it('should allow non-conflicting entry arguments and spread data parameter', function () {
+                  const data = {
+                     message: 'message',
+                     severity__: LogSeverity.WARNING,
+                  }
+                  const labels = { thing: 'blah' }
+
+                  logger._write({ timestamp: new Date(), labels }, data)
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT, labels }), data)
+               })
+
+               it('should move conflicting entry arguments to data parameter', function () {
+                  const data = {
+                     message: 'message',
+                     severity__: LogSeverity.WARNING,
+                  }
+                  const textPayload = 'blah'
+
+                  logger._write({ timestamp: new Date(), textPayload }, data)
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), { ...data, textPayload })
+               })
+
+               it('should ignore conflicting entry message argument', function () {
+                  const data = {
+                     message: 'message',
+                     severity__: LogSeverity.WARNING,
+                  }
+
+                  logger._write({ timestamp: new Date(), message: 'blah' }, data)
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), {
+                     message: 'message',
+                     severity__: LogSeverity.WARNING,
+                  })
+               })
             })
          })
       })
@@ -508,7 +604,7 @@ describe('StructuredLogger', function () {
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
+         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
       })
 
       it('should include trace for request (NODE_ENV!=production)', function () {

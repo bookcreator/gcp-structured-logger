@@ -4,11 +4,46 @@ import { LogSeverity } from "./src/severity";
 import { StructuredLogger, StructuredRequestLogger } from './src/StructuredLogger';
 import { requestToHttpRequest } from "./src/request-transformers";
 
+/** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#httprequest */
+export interface LoggingHttpRequest {
+   requestMethod: string;
+   requestUrl: string;
+   remoteIp?: string;
+   referer?: string;
+   userAgent?: string;
+   protocol?: string;
+   status?: number;
+   requestSize?: number;
+   responseSize?: number;
+   latency?: { seconds: number, nanos?: number };
+}
+/** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry */
+export interface LogEntry {
+   timestamp: Date;
+   severity: LogSeverity;
+   insertId?: string;
+   httpRequest?: LoggingHttpRequest;
+   labels?: { [k: string]: string };
+   /** Format `projects/<PROJECT-ID>/traces/<TRACE-ID>`. */
+   trace?: string;
+   spanId?: string;
+   traceSampled?: boolean;
+   operation?: { id: string, producer?: string, first?: boolean, last?: boolean };
+   sourceLocation?: { file?: string, line?: number | string, function?: string };
+   textPayload?: string;
+   jsonPayload?: any;
+   protoPayload?: any;
+}
+export interface TransportLogEntry extends Omit<LogEntry, 'timestamp' | 'jsonPayload' | 'textPayload' | 'protoPayload'> {
+   timestamp: { seconds: number, nanos?: number };
+}
+
 export interface ServiceContext {
    service: string;
    version?: string;
 }
 export type ExtractUser = (req: Request) => string | null | void;
+export type Transport = (entry: TransportLogEntry, data: string | { message?: string, [k: string]: any }) => void;
 export interface LoggingConfig {
    /** GCP project ID. */
    projectId: string;
@@ -22,6 +57,8 @@ export interface LoggingConfig {
    extraLabels?: {
       [labelName: string]: string;
    };
+   /** Optional function to output log entries to a custom location. */
+   productionTransport?: Transport;
 }
 
 export type StructuredLogger = StructuredLogger;

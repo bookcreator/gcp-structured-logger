@@ -5,23 +5,7 @@ const getTraceContext = require('./trace-context')
 const { requestToErrorReportingHttpRequest } = require('./request-transformers')
 
 /**
- * @typedef {object} LogEntry
- * @prop {Date} timestamp
- * @prop {LogSeverity} severity
- * @prop {?string} [insertId]
- * @prop {?import('./request-transformers').LoggingHttpRequest} [httpRequest]
- * @prop {?{ [k: string]: string }} [labels]
- * @prop {?string} [trace] Format `projects/<PROJECT-ID>/traces/<TRACE-ID>`
- * @prop {?string} [spanId]
- * @prop {?boolean} [traceSampled]
- * @prop {?{ id: string, producer?: string, first?: boolean, last?: boolean }} [operation]
- * @prop {?{ file?: string, line?: number | string, function?: string }} [sourceLocation]
- * @prop {?string} [textPayload]
- * @prop {?any} [jsonPayload]
- * @prop {?any} [protoPayload]
- */
-/**
- * @type {Partial<Record<keyof LogEntry, string | false>>}
+ * @type {Partial<Record<keyof import('../').LogEntry, string | false>>}
  * `false` will not map.
  *  Missing values will just use the key name.
  *  @see https://cloud.google.com/logging/docs/agent/configuration#special-fields
@@ -48,9 +32,10 @@ class StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
+    * @param {?import('../').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
     */
-   constructor(projectId, logName, errorReporter, labels) {
+   constructor(projectId, logName, errorReporter, productionTransport, labels) {
       /** @readonly @private */
       this._projectId = projectId
       /** @readonly @private */
@@ -58,12 +43,14 @@ class StructuredLogger {
       /** @readonly @private */
       this._errorReporter = errorReporter
       /** @readonly @private */
+      this._productionTransport = productionTransport
+      /** @readonly @private */
       this._labels = Object.assign({ log_name: logName }, labels)
    }
 
    /** @param {string} type */
    child(type) {
-      return new StructuredLogger(this._projectId, this._logName, this._errorReporter, { ...this._labels, type })
+      return new StructuredLogger(this._projectId, this._logName, this._errorReporter, this._productionTransport, { ...this._labels, type })
    }
 
    /**
@@ -72,7 +59,7 @@ class StructuredLogger {
     * @param {?import('../').ExtractUser} extractUser
     */
    _requestChild(request, extractUser) {
-      return new StructuredRequestLogger(this._projectId, this._logName, this._errorReporter, { ...this._labels, type: 'request' }, request, extractUser)
+      return new StructuredRequestLogger(this._projectId, this._logName, this._errorReporter, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
    }
 
    /** @param {any[]} args */
@@ -206,11 +193,11 @@ class StructuredLogger {
 
    /**
     * @protected
-    * @param {LogEntry} metadata
+    * @param {import('../').LogEntry} metadata
     * @param {object | string} data
     */
    _write({ timestamp, ..._metadata }, data) {
-      /** @type {LogEntry} */
+      /** @type {import('../').LogEntry} */
       const metadata = {
          timestamp,
          ..._metadata,
@@ -227,7 +214,6 @@ class StructuredLogger {
          process.emitWarning(`Unknown LogSeverity '${metadata.severity}', falling back to LogSeverity.${LogSeverity.DEFAULT}`, undefined, this._write)
          metadata.severity = LogSeverity.DEFAULT
       }
-      const fn = CONSOLE_SEVERITY[metadata.severity].bind(console)
 
       const { message, ...messageData } = (() => {
          if (typeof data === 'object' && data) {
@@ -250,27 +236,57 @@ class StructuredLogger {
             return { seconds, nanos }
          })()
 
-         // See https://cloud.google.com/run/docs/logging#container-logs
-         const entry = {
-            message,
-            timestamp
-         }
-         for (const key in metadata) {
-            // Check if we should add the key to a structured log
-            const lookup = LOG_ENTRY_MAPPING[key]
-            if (lookup === false) continue // Ignore
-            // If we've got no transform, just use the property name
-            entry[lookup || key] = metadata[key]
-         }
-         for (const k in entry) {
-            if (k in messageData) {
-               // Conflicting key - wrap extra in property
-               entry.messageData = messageData
-               break
+         if (typeof this._productionTransport === 'function') {
+            // Remove timestamp as we add this directly into entry later
+            delete metadata.timestamp
+            for (const key in metadata) {
+               if (LOG_ENTRY_MAPPING[key] === false) {
+                  // Remove from top level entry and add to message data
+                  messageData[key] = metadata[key]
+                  delete metadata[key]
+               }
             }
+            const entry = {
+               ...metadata,
+               timestamp,
+            }
+            /** @type {string | { message?: string, [k: string]: any }} */
+            let data
+            if (message && Object.keys(messageData).length === 0) {
+               // Only have a message
+               data = message
+            } else {
+               // Augment messageData with message if present
+               if (message) messageData.message = message
+               data = messageData
+            }
+            this._productionTransport(entry, data)
+         } else {
+
+            // See https://cloud.google.com/run/docs/logging#container-logs
+            const entry = {
+               message,
+               timestamp
+            }
+            for (const key in metadata) {
+               // Check if we should add the key to a structured log
+               const lookup = LOG_ENTRY_MAPPING[key]
+               if (lookup === false) continue // Ignore
+               // If we've got no transform, just use the property name
+               entry[lookup || key] = metadata[key]
+            }
+            for (const k in entry) {
+               if (k in messageData) {
+                  // Conflicting key - wrap extra in property
+                  entry.messageData = messageData
+                  break
+               }
+            }
+            if (!('messageData' in entry)) Object.assign(entry, messageData) // If we've not wrapped, add in the extra metadata at the root
+
+            const fn = CONSOLE_SEVERITY[entry.severity].bind(console)
+            fn(JSON.stringify(cleanupForJSON(entry)))
          }
-         if (!('messageData' in entry)) Object.assign(entry, messageData) // If we've not wrapped, add in the extra metadata at the root
-         fn(JSON.stringify(cleanupForJSON(entry)))
       } else {
          let prefix = metadata.timestamp.toISOString()
          if (metadata.trace) prefix += ' / ' + metadata.trace.replace(/.+\//, '')
@@ -278,6 +294,8 @@ class StructuredLogger {
          const args = []
          if (message) args.push(message)
          if (Object.keys(messageData).length) args.push(messageData)
+
+         const fn = CONSOLE_SEVERITY[metadata.severity].bind(console)
          fn(formatWithOptions({
             depth: null,
             colors: true,
@@ -292,12 +310,13 @@ class StructuredRequestLogger extends StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
+    * @param {import('../').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
     * @param {import('express-serve-static-core').Request} request
     * @param {?import('../').ExtractUser} extractUser
     */
-   constructor(projectId, logName, errorReporter, labels, request, extractUser) {
-      super(projectId, logName, errorReporter, labels)
+   constructor(projectId, logName, errorReporter, productionTransport, labels, request, extractUser) {
+      super(projectId, logName, errorReporter, productionTransport, labels)
       /** @readonly @private */
       this._request = request
       /** @readonly @private */
@@ -321,7 +340,7 @@ class StructuredRequestLogger extends StructuredLogger {
    }
 
    /**
-    * @param {LogEntry} entry
+    * @param {import('../').LogEntry} entry
     * @param {object | string} data
     */
    _write(entry, data) {

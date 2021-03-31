@@ -97,6 +97,16 @@ describe('index.js', function () {
          })
          assert.deepStrictEqual(l._serviceContext, serviceContext)
       })
+      it('logger property should reuse productionTransport', function () {
+         const productionTransport = () => { }
+         const l = new logger.Logging({
+            projectId,
+            logName,
+            serviceContext,
+            productionTransport
+         })
+         assert.strictEqual(l.logger._productionTransport, productionTransport)
+      })
 
       context('#_errorReporter', function () {
 

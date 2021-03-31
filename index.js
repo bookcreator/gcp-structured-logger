@@ -8,7 +8,7 @@ const ERROR_REPORTING_PROP = '__errorReporter'
 class Logging {
 
    /** @param {import('./').LoggingConfig} opts */
-   constructor({ projectId, logName, serviceContext, requestUserExtractor, extraLabels }) {
+   constructor({ projectId, logName, serviceContext, requestUserExtractor, extraLabels, productionTransport }) {
       /** @readonly @private */
       this._serviceContext = Object.freeze({ ...serviceContext })
       /** @readonly @private */
@@ -16,7 +16,7 @@ class Logging {
       /** @readonly @private */
       this._extractUser = requestUserExtractor
       /** @readonly */
-      this.logger = new StructuredLogger(projectId, logName, () => this._errorReporter, extraLabels)
+      this.logger = new StructuredLogger(projectId, logName, () => this._errorReporter, productionTransport, extraLabels)
    }
 
    /**
