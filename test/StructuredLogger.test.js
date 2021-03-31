@@ -450,6 +450,17 @@ describe('StructuredLogger', function () {
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522e6 }, severity }), {})
                })
 
+               it('should include logName', function () {
+                  const severity = LogSeverity.DEBUG
+                  const timestamp = new Date(1617182524522)
+                  const labels = { hello: 'world' }
+
+                  logger._write({ timestamp, severity, labels }, '')
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522e6 }, severity, logName }), {})
+                  assert.deepPropertyVal(productionTransport.firstCall.firstArg, 'labels', labels)
+               })
+
                it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
                   const severity = LogSeverity.DEFAULT
 

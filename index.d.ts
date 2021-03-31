@@ -35,6 +35,7 @@ export interface LogEntry {
    protoPayload?: any;
 }
 export interface TransportLogEntry extends Omit<LogEntry, 'timestamp' | 'jsonPayload' | 'textPayload' | 'protoPayload'> {
+   logName: string;
    timestamp: { seconds: number, nanos?: number };
 }
 

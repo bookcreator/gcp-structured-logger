@@ -239,6 +239,8 @@ class StructuredLogger {
          if (typeof this._productionTransport === 'function') {
             // Remove timestamp as we add this directly into entry later
             delete metadata.timestamp
+            // Remove log_name label as it'll be added to the entry
+            delete metadata.labels.log_name
             for (const key in metadata) {
                if (LOG_ENTRY_MAPPING[key] === false) {
                   // Remove from top level entry and add to message data
@@ -249,6 +251,7 @@ class StructuredLogger {
             const entry = {
                ...metadata,
                timestamp,
+               logName: this._logName,
             }
             /** @type {string | { message?: string, [k: string]: any }} */
             let data
