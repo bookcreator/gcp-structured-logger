@@ -69,7 +69,7 @@ describe('StructuredLogger', function () {
    const logName = 'log-name'
 
    it('should create object', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
@@ -104,7 +104,7 @@ describe('StructuredLogger', function () {
 
    it('should create request logger', function () {
       const req = make()
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter)._requestChild(req)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null)._requestChild(req)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
@@ -137,7 +137,7 @@ describe('StructuredLogger', function () {
    })
 
    it('should use same error reporter each time', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter)
+      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
 
       const e1 = l._errorReporter()
       sinon.assert.calledOnceWithExactly(errorReporter)
@@ -153,7 +153,7 @@ describe('StructuredLogger', function () {
       /** @type {sinon.SinonSpy} */
       let writeSpy
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, errorReporter)
+         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
          writeSpy = sinon.spy(logger, '_write')
       })
       beforeEach(function () {
@@ -366,8 +366,6 @@ describe('StructuredLogger', function () {
 
                logger.log(message, data)
 
-               const payload = writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg
-
                assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity })).lastCall.lastArg, { message, '0': data })
             })
          })
@@ -510,7 +508,7 @@ describe('StructuredLogger', function () {
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, errorReporter)
+         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null)
       })
 
       it('should include trace for request (NODE_ENV!=production)', function () {

@@ -48,7 +48,7 @@ class StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
-    * @param {{ [key: string]: string }} [labels]
+    * @param {{ [key: string]: string }} labels
     */
    constructor(projectId, logName, errorReporter, labels) {
       /** @readonly @private */

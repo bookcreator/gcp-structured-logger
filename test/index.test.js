@@ -73,7 +73,7 @@ describe('index.js', function () {
          })
          assert.instanceOf(l.logger, require('../src/StructuredLogger').StructuredLogger)
       })
-      it('should logger property should reuse error reporter', function () {
+      it('logger property should reuse error reporter', function () {
          const l = new logger.Logging({
             projectId,
             logName,
@@ -85,7 +85,7 @@ describe('index.js', function () {
          assert.strictEqual(loggerE, l._errorReporter)
          assert.strictEqual(l.logger._errorReporter(), loggerE)
       })
-      it('should use have serviceContext property', function () {
+      it('should use serviceContext property', function () {
          const serviceContext = {
             service: 'tests',
             version: 'debug'
