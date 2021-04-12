@@ -1,4 +1,4 @@
-const { types } = require('util')
+const { types, inspect } = require('util')
 
 /**
  * Replaces:
@@ -34,6 +34,8 @@ module.exports = function cleanupForJSON(obj) {
       if (_obj !== null && typeof _obj === 'object') {
          // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
          if (typeof _obj.toJSON === 'function') return convert(_obj.toJSON(parentKey), parentKey)
+         // Use custom inspect method if present
+         if (typeof _obj[inspect.custom] === 'function') return convert(_obj[inspect.custom](), parentKey)
          // Check if we've seen this reference before
          if (seenRefs.has(_obj)) return '[Circular]'
 

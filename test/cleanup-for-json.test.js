@@ -1,3 +1,4 @@
+const { inspect } = require('util')
 const { assert } = require('chai')
 const sinon = require('sinon')
 
@@ -381,6 +382,39 @@ describe('cleanup-for-json', function () {
          const v = new Map()
          v.set('key', {
             toJSON() {
+               return null
+            }
+         })
+         assert.deepStrictEqual(cleanupForJSON(v), [{ key: 'key', value: null }])
+      })
+      it('should serialise to object using inspect.custom', function () {
+         const v = {
+            [inspect.custom]() {
+               return { hello: 'world' }
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), { hello: 'world' })
+      })
+      it('should serialise to object using inspect.custom that returns array', function () {
+         const v = {
+            [inspect.custom]() {
+               return [{ hello: 'world' }]
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), [{ hello: 'world' }])
+      })
+      it('should serialise to object using inspect.custom that returns string', function () {
+         const v = {
+            [inspect.custom]() {
+               return 'hello'
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), 'hello')
+      })
+      it('should serialise to object using inspect.custom that returns null', function () {
+         const v = new Map()
+         v.set('key', {
+            [inspect.custom]() {
                return null
             }
          })
