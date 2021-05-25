@@ -230,15 +230,13 @@
     retry-request "^4.1.1"
     teeny-request "^7.0.0"
 
-"@google-cloud/error-reporting@^2.0.1":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@google-cloud/error-reporting/-/error-reporting-2.0.1.tgz#282e1bc5d09bc2a75ac33186a2f3a846208ce5d8"
-  integrity sha512-P8r2RFKB0BqZmWkNmTSSqn8GZJuhSUYaFswQZ5yZBypaaAMET0+kPBRYX3O2HuxnFevb9xVpeE7WJwp3emtXfw==
+"@google-cloud/error-reporting@^2.0.2":
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/@google-cloud/error-reporting/-/error-reporting-2.0.2.tgz#3002c0fac28c727755be003ad6ca758384857de2"
+  integrity sha512-fpD3/zpg+Mw4rrQaf9BZWK9CtSU25dHQSi+nDOz5aXQBJX+5AISxSdA/DoGZbxfn/LZV6XmJvIIVYjFegCTvBg==
   dependencies:
     "@google-cloud/common" "^3.0.0"
     console-log-level "^1.4.1"
-    is "^3.3.0"
-    lodash.has "^4.5.2"
 
 "@google-cloud/projectify@^2.0.0":
   version "2.0.1"
@@ -1334,11 +1332,6 @@ is-windows@^1.0.2:
   resolved "https://registry.yarnpkg.com/is-windows/-/is-windows-1.0.2.tgz#d1850eb9791ecd18e6182ce12a30f396634bb19d"
   integrity sha512-eXK1UInq2bPmjyX6e3VHIzMLobc4J94i4AWn+Hpq3OU5KkrRC96OAcR3PRJ/pGu6m8TRnBHP9dkXQVsT/COVIA==
 
-is@^3.3.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/is/-/is-3.3.0.tgz#61cff6dd3c4193db94a3d62582072b44e5645d79"
-  integrity sha512-nW24QBoPcFGGHJGUwnfpI7Yc5CdqWNdsyHQszVE/z2pKHXzh7FZ5GWhJqSyaQ9wMkQnsTx+kAI8bHlCX4tKdbg==
-
 isarray@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/isarray/-/isarray-0.0.1.tgz#8a18acfca9a8f4177e09abfc6038939b05d1eedf"
@@ -1522,11 +1515,6 @@ lodash.get@^4.4.2:
   version "4.4.2"
   resolved "https://registry.yarnpkg.com/lodash.get/-/lodash.get-4.4.2.tgz#2d177f652fa31e939b4438d5341499dfa3825e99"
   integrity sha1-LRd/ZS+jHpObRDjVNBSZ36OCXpk=
-
-lodash.has@^4.5.2:
-  version "4.5.2"
-  resolved "https://registry.yarnpkg.com/lodash.has/-/lodash.has-4.5.2.tgz#d19f4dc1095058cccbe2b0cdf4ee0fe4aa37c862"
-  integrity sha1-0Z9NwQlQWMzL4rDN9O4P5Ko3yGI=
 
 lodash.merge@^4.6.2:
   version "4.6.2"
