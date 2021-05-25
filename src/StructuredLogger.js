@@ -44,17 +44,20 @@ class StructuredLogger {
       this._errorReporter = errorReporter
       /** @readonly @private */
       this._productionTransport = productionTransport
-      /** @readonly @private */
+      /** @readonly @protected */
       this._labels = Object.assign({ log_name: logName }, labels)
    }
 
-   /** @param {string} type */
+   /**
+    * @param {string} type
+    * @returns {StructuredLogger}
+    */
    child(type) {
       return new StructuredLogger(this._projectId, this._logName, this._errorReporter, this._productionTransport, { ...this._labels, type })
    }
 
    /**
-    * @private
+    * @protected
     * @param {import('express-serve-static-core').Request} request
     * @param {?import('../').ExtractUser} extractUser
     */
@@ -326,6 +329,16 @@ class StructuredRequestLogger extends StructuredLogger {
       this._extractUser = extractUser
       /** @readonly @private */
       this._trace = getTraceContext(projectId, request)
+   }
+
+   /**
+    * @param {string} type
+    * @returns {StructuredRequestLogger}
+    */
+   child(type) {
+      const child = this._requestChild(this._request, this._extractUser)
+      child._labels.type = type
+      return child
    }
 
    /**

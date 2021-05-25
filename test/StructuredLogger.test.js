@@ -652,6 +652,37 @@ describe('StructuredLogger', function () {
          })
       })
 
+      describe('#child', function () {
+
+         it('should return instance of StructuredRequestLogger', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const spanId = 288377245651
+
+            const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
+            const log = logger._requestChild(req, errorReporter)
+
+            const l = log.child('CHILD')
+
+            assert.instanceOf(l, loggers.StructuredRequestLogger)
+            assert.propertyVal(l, '_projectId', projectId)
+            assert.propertyVal(l, '_logName', logName)
+            assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'CHILD' })
+            sinon.assert.notCalled(errorReporter)
+         })
+
+         it('should use parents trace', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const spanId = 288377245651
+
+            const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
+            const log = logger._requestChild(req, errorReporter)
+
+            const l = log.child('CHILD')
+
+            assert.deepPropertyVal(l, '_trace', log._trace)
+         })
+      })
+
       describe('#reportError', function () {
 
          afterEach('should get error reporter on each call', function () {
