@@ -18,7 +18,7 @@ module.exports = function extractTraceContext(projectId, req) {
             // Convert spanId to hex and ensure its always a length-16 hex string
             spanId: BigInt(matches[2]).toString(16).padStart(16, '0'),
          }
-      } /* c8 ignore next */ catch (ex) { /* Bad span number */ }
+      } /* c8 ignore next */ catch { /* Bad span number */ }
    }
    return {}
 }
