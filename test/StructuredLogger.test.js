@@ -223,7 +223,7 @@ describe('StructuredLogger', function () {
                const data = Buffer.from('Hello, world!', 'utf8')
                const message = 'hello'
                const data1 = { thing: 'world', blah: [/d/, date], base64: data }
-               const data2 = { hello: 12, circular }
+               const data2 = { hello: 12, circular, bigint: BigInt(1000000) }
 
                logger.log(message, data1, data2)
 
@@ -251,7 +251,8 @@ describe('StructuredLogger', function () {
                      circular: {
                         ...circular,
                         circular: '[Circular]'
-                     }
+                     },
+                     bigint: '1000000',
                   },
                   severity,
                   message,

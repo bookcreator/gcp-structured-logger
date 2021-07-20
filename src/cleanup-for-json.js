@@ -30,6 +30,7 @@ module.exports = function cleanupForJSON(obj) {
          flags: _obj.flags
       }
       if (types.isDate(_obj)) return _obj.toISOString()
+      if (typeof _obj === 'bigint') return _obj.toString()
 
       if (_obj !== null && typeof _obj === 'object') {
          // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
