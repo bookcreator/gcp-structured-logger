@@ -395,6 +395,18 @@ describe('cleanup-for-json', function () {
          }
          assert.deepStrictEqual(cleanupForJSON(v), { hello: 'world' })
       })
+      it('should serialise to object using inspect.custom passing default inspect options', function () {
+         const v = {
+            [inspect.custom]() {
+               return { hello: 'world' }
+            }
+         }
+         const customInspect = sinon.spy(v, inspect.custom)
+
+         assert.deepStrictEqual(cleanupForJSON(v), { hello: 'world' })
+
+         sinon.assert.calledOnceWithExactly(customInspect, inspect.defaultOptions.depth, inspect.defaultOptions)
+      })
       it('should serialise to object using inspect.custom that returns array', function () {
          const v = {
             [inspect.custom]() {
