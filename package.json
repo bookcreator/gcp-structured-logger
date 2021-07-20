@@ -35,13 +35,13 @@
     "@google-cloud/error-reporting": "^2.0.2"
   },
   "devDependencies": {
-    "@types/express-serve-static-core": "^4.17.19",
+    "@types/express-serve-static-core": "^4.17.24",
     "c8": "^7.7.3",
     "chai": "^4.3.4",
-    "eslint": "^7.27.0",
+    "eslint": "^7.31.0",
     "eslint-plugin-mocha": "^8.1.0",
     "eslint-plugin-node": "^11.1.0",
     "mocha": "^8.4.0",
-    "sinon": "^11.0.0"
+    "sinon": "^11.1.1"
   }
 }
