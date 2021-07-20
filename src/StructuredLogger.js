@@ -221,13 +221,16 @@ class StructuredLogger {
       const { message, ...messageData } = (() => {
          if (typeof data === 'object' && data) {
             return data
-         } else /* istanbul ignore else */ if (typeof data === 'string') {
+         } else if (typeof data === 'string') {
             return { message: data }
-         } else if (typeof data !== 'undefined') {
-            return { message: format(data) }
-         } else {
-            return {}
+         } /* c8 ignore start */ else {
+            if (typeof data !== 'undefined') {
+               return { message: format(data) }
+            } else {
+               return {}
+            }
          }
+         /* c8 ignore stop */
       })()
 
       if (process.env.NODE_ENV === 'production') {

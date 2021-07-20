@@ -25,10 +25,10 @@
   },
   "scripts": {
     "lint": "eslint --cache --fix .",
-    "test-debug": "mocha --inspect=50000 --no-timeout",
-    "test": "nyc --reporter=html --reporter=text-summary mocha --enable-source-maps",
+    "test-debug": "mocha --inspect-brk=50000 --no-timeout",
+    "test": "c8 --reporter=html --reporter=text-summary mocha --enable-source-maps",
     "preci-test": "yarn lint",
-    "ci-test": "nyc --reporter=text --reporter=text-summary mocha --forbid-only --enable-source-maps",
+    "ci-test": "c8 --reporter=text --reporter=text-summary mocha --forbid-only --enable-source-maps",
     "postversion": "git push --follow-tags"
   },
   "dependencies": {
@@ -36,12 +36,12 @@
   },
   "devDependencies": {
     "@types/express-serve-static-core": "^4.17.19",
+    "c8": "^7.7.3",
     "chai": "^4.3.4",
     "eslint": "^7.27.0",
     "eslint-plugin-mocha": "^8.1.0",
     "eslint-plugin-node": "^11.1.0",
     "mocha": "^8.4.0",
-    "nyc": "^15.1.0",
     "sinon": "^11.0.0"
   }
 }
