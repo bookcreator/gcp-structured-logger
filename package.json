@@ -39,7 +39,7 @@
     "c8": "^7.7.3",
     "chai": "^4.3.4",
     "eslint": "^7.31.0",
-    "eslint-plugin-mocha": "^8.1.0",
+    "eslint-plugin-mocha": "^9.0.0",
     "eslint-plugin-node": "^11.1.0",
     "mocha": "^8.4.0",
     "sinon": "^11.1.1"
