@@ -379,6 +379,6 @@ class StructuredRequestLogger extends StructuredLogger {
  *          -> <__filename>:<LN>:<CN>
  * ```
  */
-const reportErrorMatcher = new RegExp(`^.+\\.(?:${StructuredLogger.prototype.reportError.name}|${StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
+const reportErrorMatcher = new RegExp(`^\\s*at\\s+(?:.+?\\.)?(?:${StructuredLogger.prototype.reportError.name}|${StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
 
 module.exports = { StructuredLogger, StructuredRequestLogger }
