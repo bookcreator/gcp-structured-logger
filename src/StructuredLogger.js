@@ -26,6 +26,12 @@ const LOG_ENTRY_MAPPING = {
    message: false,
 }
 
+const NS_MICROSECOND = 1000n
+const NS_MILLISECOND = 1000n * NS_MICROSECOND
+const NS_SECOND = 1000n * NS_MILLISECOND
+const NS_MINUTE = 60n * NS_SECOND
+const NS_HOUR = 60n * NS_MINUTE
+
 class StructuredLogger {
 
    /**
@@ -46,6 +52,8 @@ class StructuredLogger {
       this._productionTransport = productionTransport
       /** @readonly @protected */
       this._labels = Object.assign({ log_name: logName }, labels)
+      /** @readonly @private @type {Map<string, bigint>} */
+      this._times = new Map()
    }
 
    /**
@@ -137,6 +145,110 @@ class StructuredLogger {
          event.error = props
       }
       this._write({ severity, timestamp }, event)
+   }
+
+   /**
+    * Matches `console.time` but the label argument is required.
+    * @param {string} label
+    */
+   time(label) {
+      label = String(label)
+      if (this._times.has(label)) {
+         process.emitWarning(`Label '${label}' already exists for StructuredLogger#time()`)
+         return
+      }
+      this._times.set(label, process.hrtime.bigint())
+   }
+
+   /**
+    * Similar to `console.timeEnd` but the label argument is required.
+    * @param {string} label
+    */
+   timeEnd(label) {
+      label = String(label)
+      const found = this._timeLog(label, 'timeEnd')
+      if (found) this._times.delete(label)
+   }
+
+   /**
+    * Similar to `console.timeLog` but the label argument is required.
+    * @param {string} label
+    * @param {any[]} args
+    */
+   timeLog(label, ...args) {
+      this._timeLog(String(label), 'timeLog', args)
+   }
+
+   /**
+    * @private
+    * @param {string} label
+    * @param {string} from
+    * @param {any[]} args
+    * @returns `true` if the label is found.
+    */
+   _timeLog(label, from, args = []) {
+      const start = this._times.get(label)
+      if (start === undefined) {
+         process.emitWarning(`No such label '${label}' for StructuredLogger#${from}()`)
+         return false
+      }
+      const duration = process.hrtime.bigint() - start
+
+      const message = `${label}: ${this._formatDuration(duration)}`
+      this._writeFormatted('DEFAULT', [message, ...args])
+      return true
+   }
+
+   /**
+    * @private
+    * @param {bigint} ns
+    */
+   _formatDuration(ns) {
+      if (ns >= NS_MINUTE) {
+         let h = 0n
+         if (ns >= NS_HOUR) {
+            h = ns / NS_HOUR
+            ns %= NS_HOUR
+         }
+
+         let m = ns / NS_MINUTE
+         ns %= NS_MINUTE
+         if (ns >= 59999500000n) {
+            // If we're going to round up add an extra minute on and cap the seconds
+            m++
+            ns = 0n
+            if (m === 60n) {
+               h++
+               m = 0n
+            }
+         }
+         const s = (Number(ns) / Number(NS_MILLISECOND)) / 1000
+
+         // Pad to 6 characters as we want ss.SSS
+         const secondsSuffix = `:${s.toFixed(3).padStart(6, '0')}`
+
+         if (h !== 0n) {
+            // Format with hours to milliseconds precision
+            return `${h.toString()}:${m.toString().padStart(2, '0')}${secondsSuffix} (h:mm:ss.SSS)`
+         }
+         // Format with minutes to milliseconds precision
+         return `${m.toString()}${secondsSuffix} (m:ss.SSS)`
+      } else if (ns >= NS_SECOND) {
+         // Format as fractional seconds to milliseconds precision
+         const ms = Math.round(Number(ns) / Number(NS_MILLISECOND))
+         return `${(ms / 1000).toFixed(3)}s`
+      } else if (ns >= NS_MILLISECOND) {
+         // Format as fractional milliseconds to microsecond precision
+         const µs = Math.round(Number(ns) / Number(NS_MICROSECOND))
+         return `${(µs / 1000).toFixed(3)}ms`
+      } else if (ns >= NS_MICROSECOND) {
+         // Format as fractional microseconds to nanosecond precision
+         const µs = Number(ns) / Number(NS_MICROSECOND)
+         return `${µs.toFixed(3)}µs`
+      } else {
+         // Format as integer nanoseconds
+         return `${ns.toString()}ns`
+      }
    }
 
    /**
