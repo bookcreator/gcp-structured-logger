@@ -175,6 +175,7 @@ describe('StructuredLogger', function () {
       })
       beforeEach(function () {
          writeSpy.resetHistory()
+         logger._times.clear()
       })
 
       context('Severity', function () {
@@ -200,6 +201,32 @@ describe('StructuredLogger', function () {
                })
             })
          }
+
+         describe(`#timeLog`, function () {
+            const LABEL = 'LABEL'
+
+            /** @type {bigint} */
+            let start
+            beforeEach(function () {
+               start = process.hrtime.bigint()
+               logger._times.set(LABEL, start)
+            })
+
+            it('should write as DEFAULT severity', function () {
+               const message = 'Hello'
+               logger.timeLog(LABEL, message)
+
+               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.date }), sinonMatch(new RegExp(`^${LABEL}: \\d+?\\.\\d{3}(m|µ|n)?s ${message}$`)))
+            })
+
+            it(`should output to console.log`, function () {
+               const message = 'Hello'
+               logger.timeLog(LABEL, message)
+
+               // eslint-disable-next-line no-console
+               sinon.assert.calledOnceWithExactly(console.log, sinonMatch(message))
+            })
+         })
 
          describe('Formatted output', function () {
             const severity = LogSeverity.DEFAULT
@@ -607,6 +634,133 @@ describe('StructuredLogger', function () {
             assert.notNestedProperty(data, 'context.reportLocation')
             assert.notNestedProperty(data, 'context.httpRequest')
             assert.nestedPropertyVal(data, 'context.user', USER)
+         })
+      })
+
+      describe('#time*', function () {
+
+         describe('#time', function () {
+
+            it('should add new time label', function () {
+               const LABEL = 'LABEL'
+
+               logger.time(LABEL)
+
+               assert.typeOf(logger._times.get(LABEL), 'bigint')
+            })
+
+            it('should stringify label parameter', function () {
+               const LABEL = Symbol('Label')
+
+               logger.time(LABEL)
+
+               assert.typeOf(logger._times.get('Symbol(Label)'), 'bigint')
+            })
+
+            it('should log nothing with new label', function () {
+               logger.time('NEW_LABEL')
+
+               sinon.assert.notCalled(writeSpy)
+            })
+
+            it('should do nothing when label is already present', function () {
+               const LABEL = 'LABEL'
+               logger.time(LABEL)
+
+               const value = logger._times.get(LABEL)
+               assert.typeOf(value, 'bigint')
+               sinon.assert.notCalled(writeSpy)
+
+               logger.time(LABEL)
+               sinon.assert.notCalled(writeSpy)
+               assert.strictEqual(logger._times.get(LABEL), value)
+            })
+         })
+
+         describe('#timeEnd', function () {
+
+            it('should do nothing with unknown label', function () {
+               logger.timeEnd()
+
+               sinon.assert.notCalled(writeSpy)
+            })
+
+            it('should log time with known label', function () {
+               const LABEL = 'LABEL'
+               logger.time(LABEL)
+               logger.timeEnd(LABEL)
+
+               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.date }), sinonMatch(new RegExp(`^${LABEL}: \\d+?\\.\\d{3}(m|µ|n)?s$`)))
+            })
+
+            it('should remove time label', function () {
+               const LABEL = 'LABEL'
+
+               logger.time(LABEL)
+               logger.timeEnd(LABEL)
+
+               assert.isEmpty(logger._times.values())
+            })
+         })
+
+         describe('#timeLog', function () {
+
+            it('should include arguments', function () {
+               const LABEL = 'LABEL'
+
+               const date = new Date()
+               const bigInt = '123432432432423432423'
+               const args = ['hello', 'world', date, 1, false, true, 0, 1.2, /b\\o\n(o\))/ig, undefined, null, BigInt(bigInt)]
+
+               logger.time(LABEL)
+               logger.timeLog(LABEL, ...args)
+
+               assert.match(writeSpy.withArgs(sinonMatch({ severity: 'DEFAULT' })).lastCall.lastArg, /^LABEL: \d+?\.\d{3}(m|µ|n)?s hello world \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z 1 false true 0 1\.2 \/b\\\\o\\n\(o\\\)\)\/gi undefined null 123432432432423432423$/)
+            })
+         })
+
+         describe('#_formatDuration', function () {
+
+            const tests = new Map([
+               [0n, '0ns'],
+               [1n, '1ns'],
+               [999n, '999ns'],
+               [1000n, '1.000µs'],
+               [1001n, '1.001µs'],
+               [9999n, '9.999µs'],
+               [999999n, '999.999µs'],
+               [1000000n, '1.000ms'],
+               [1000001n, '1.000ms'],
+               [1000499n, '1.000ms'],
+               [1000500n, '1.001ms'],
+               [9999001n, '9.999ms'],
+               [9999999n, '10.000ms'],
+               [999999001n, '999.999ms'],
+               [999999999n, '1000.000ms'],
+               [1000000000n, '1.000s'],
+               [1000000001n, '1.000s'],
+               [1000499999n, '1.000s'],
+               [1000500000n, '1.001s'],
+               [59999499999n, '59.999s'],
+               [59999999999n, '60.000s'],
+               [60000000000n, '1:00.000 (m:ss.SSS)'],
+               [60000000001n, '1:00.000 (m:ss.SSS)'],
+               [60000499999n, '1:00.000 (m:ss.SSS)'],
+               [60000500000n, '1:00.001 (m:ss.SSS)'],
+               [3599999000001n, '59:59.999 (m:ss.SSS)'],
+               [3599999499999n, '59:59.999 (m:ss.SSS)'],
+               [3599999999999n, '1:00:00.000 (h:mm:ss.SSS)'],
+               [3600000000000n, '1:00:00.000 (h:mm:ss.SSS)'],
+               [3600000000001n, '1:00:00.000 (h:mm:ss.SSS)'],
+               [3600000499999n, '1:00:00.000 (h:mm:ss.SSS)'],
+               [3600000500000n, '1:00:00.001 (h:mm:ss.SSS)'],
+               [36000000000000n, '10:00:00.000 (h:mm:ss.SSS)'],
+            ])
+            for (const [ns, string] of tests) {
+               it(`with value '${ns}', should produce string '${string}'`, function () {
+                  assert.strictEqual(logger._formatDuration(ns), string)
+               })
+            }
          })
       })
    })
