@@ -154,7 +154,7 @@ class StructuredLogger {
    time(label) {
       label = String(label)
       if (this._times.has(label)) {
-         process.emitWarning(`Label '${label}' already exists for StructuredLogger#time()`)
+         process.emitWarning(`Label '${label}' already exists for StructuredLogger#${this.time.name}()`, this.time)
          return
       }
       this._times.set(label, process.hrtime.bigint())
@@ -166,7 +166,7 @@ class StructuredLogger {
     */
    timeEnd(label) {
       label = String(label)
-      const found = this._timeLog(label, 'timeEnd')
+      const found = this._timeLog(label, this.timeEnd)
       if (found) this._times.delete(label)
    }
 
@@ -176,20 +176,20 @@ class StructuredLogger {
     * @param {any[]} args
     */
    timeLog(label, ...args) {
-      this._timeLog(String(label), 'timeLog', args)
+      this._timeLog(String(label), this.timeLog, args)
    }
 
    /**
     * @private
     * @param {string} label
-    * @param {string} from
+    * @param {Function} from
     * @param {any[]} args
     * @returns `true` if the label is found.
     */
    _timeLog(label, from, args = []) {
       const start = this._times.get(label)
       if (start === undefined) {
-         process.emitWarning(`No such label '${label}' for StructuredLogger#${from}()`)
+         process.emitWarning(`No such label '${label}' for StructuredLogger#${from.name}()`, from)
          return false
       }
       const duration = process.hrtime.bigint() - start
