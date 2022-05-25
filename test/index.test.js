@@ -1,6 +1,9 @@
-const { EventEmitter } = require('events')
+const { Writable, finished: finishedCb } = require('stream')
 const { assert } = require('chai')
 const { createSandbox, match: sinonMatch } = require('sinon')
+
+// Can't yet use require('stream/promises') until we drop Node 14
+const finished = require('util').promisify(finishedCb)
 
 const sinon = createSandbox()
 
@@ -27,6 +30,11 @@ describe('index.js', function () {
             }
          }
       })
+      class MockResponse extends Writable {
+         _write(chunk, encoding, callback) {
+            callback()
+         }
+      }
 
       const projectId = 'project-id'
       const logName = 'log-name'
@@ -223,9 +231,9 @@ describe('index.js', function () {
             assert.isFunction(l.makeErrorMiddleware())
          })
 
-         it('should report errors', function () {
+         it('should report errors', async function () {
 
-            const res = new EventEmitter()
+            const res = new MockResponse()
             const req = make({ res })
             const nextStub = sinon.stub()
 
@@ -239,7 +247,7 @@ describe('index.js', function () {
 
             sinon.assert.calledOnceWithExactly(nextStub, error)
 
-            res.emit('end')
+            await finished(res.end())
 
             sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.ERROR })), sinonMatch.object, sinonMatch({ message: sinonMatch(error.message) }))
 
@@ -247,9 +255,9 @@ describe('index.js', function () {
             sinon.assert.notCalled(makeRequestLog)
          })
 
-         it('should report errors if no logging middleware was added', function () {
+         it('should report errors if no logging middleware was added', async function () {
 
-            const res = new EventEmitter()
+            const res = new MockResponse()
             const req = make({ res })
             const nextStub = sinon.stub()
 
@@ -268,7 +276,7 @@ describe('index.js', function () {
 
             sinon.assert.calledOnceWithExactly(nextStub, error)
 
-            res.emit('end')
+            await finished(res.end())
 
             // Check we haven't added a req.log
             assert.notProperty(req, 'log')
@@ -281,9 +289,9 @@ describe('index.js', function () {
             assert.propertyVal(makeRequestLogStub.withArgs(req).firstCall.returnValue, '_extractUser', requestUserExtractor)
          })
 
-         it('should report 4xx statusCode errors as warnings', function () {
+         it('should report 4xx statusCode errors as warnings', async function () {
 
-            const res = new EventEmitter()
+            const res = new MockResponse()
             const req = make({ res })
             const nextStub = sinon.stub()
 
@@ -297,14 +305,14 @@ describe('index.js', function () {
 
             sinon.assert.calledOnceWithExactly(nextStub, error)
 
-            res.emit('end')
+            await finished(res.end())
 
             sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.WARNING })), sinonMatch.object, sinonMatch({ message: sinonMatch(error.message) }))
          })
 
-         it('should report 4xx status errors as warnings', function () {
+         it('should report 4xx status errors as warnings', async function () {
 
-            const res = new EventEmitter()
+            const res = new MockResponse()
             const req = make({ res })
             const nextStub = sinon.stub()
 
@@ -318,7 +326,7 @@ describe('index.js', function () {
 
             sinon.assert.calledOnceWithExactly(nextStub, error)
 
-            res.emit('end')
+            await finished(res.end())
 
             sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.WARNING })), sinonMatch.object, sinonMatch({ message: sinonMatch(error.message) }))
          })
