@@ -37,10 +37,10 @@
     retry-request "^4.2.2"
     teeny-request "^7.0.0"
 
-"@google-cloud/error-reporting@^2.0.5":
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/@google-cloud/error-reporting/-/error-reporting-2.0.5.tgz#54a51440f5ccee9ba04974e3d6f9a597623fec24"
-  integrity sha512-oBmSf/NpD9Zcqep5Gozvhhon+7d7xuF5Rw/e7DfeEi9Dii3wg/Mj01pkVkokb2GAT49Wj1yRg6cvnTxRHwVP7A==
+"@google-cloud/error-reporting@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@google-cloud/error-reporting/-/error-reporting-3.0.0.tgz#f4a13b7dc90f652695314053deae80218c2ba40e"
+  integrity sha512-n+vF3ltx7T6gMWk35GAFxUxqhmj15vAPc2Qw73DXvp44sCkDbcIJczatOLYKbieBgjrdYNxZTM8TCgTJDFI6DQ==
   dependencies:
     "@google-cloud/common" "^3.0.0"
     console-log-level "^1.4.1"
