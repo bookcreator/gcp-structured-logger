@@ -32,7 +32,7 @@
     "postversion": "git push --follow-tags"
   },
   "dependencies": {
-    "@google-cloud/error-reporting": "^2.0.5"
+    "@google-cloud/error-reporting": "^3.0.1"
   },
   "devDependencies": {
     "@types/express-serve-static-core": "^4.17.28",
