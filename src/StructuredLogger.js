@@ -126,7 +126,7 @@ class StructuredLogger {
       const timestamp = new Date()
       if (!severity) {
          severity = LogSeverity.ERROR
-         if (err && typeof err === 'object' && err.severity) severity = err.severity
+         if (err && typeof err === 'object' && err.severity in LogSeverity) severity = err.severity
       }
       const event = this._makeReportableError(this._errorReporter(), err)
       // Remove report location as the stack trace is used
