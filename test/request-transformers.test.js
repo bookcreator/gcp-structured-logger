@@ -143,7 +143,7 @@ describe('request-transformers', function () {
             method,
          })
       })
-      it('should include remoteAddress derived from req.ip', function () {
+      it('should include remoteIp derived from req.ip', function () {
          const req = make({
             ...base,
             ip: '127.0.0.1'
@@ -151,10 +151,10 @@ describe('request-transformers', function () {
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
             url,
             method,
-            remoteAddress: '127.0.0.1',
+            remoteIp: '127.0.0.1',
          })
       })
-      it('should include remoteAddress derived from req.ips', function () {
+      it('should include remoteIp derived from req.ips', function () {
          const req = make({
             ...base,
             ips: ['127.0.0.1']
@@ -162,10 +162,10 @@ describe('request-transformers', function () {
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
             url,
             method,
-            remoteAddress: '127.0.0.1',
+            remoteIp: '127.0.0.1',
          })
       })
-      it('should include remoteAddress derived from x-forwarded-for header', function () {
+      it('should include remoteIp derived from x-forwarded-for header', function () {
          const req = make({
             ...base,
             headers: {
@@ -175,10 +175,10 @@ describe('request-transformers', function () {
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
             url,
             method,
-            remoteAddress: '127.0.0.1',
+            remoteIp: '127.0.0.1',
          })
       })
-      it('should include remoteAddress derived from x-forwarded-for headers', function () {
+      it('should include remoteIp derived from x-forwarded-for headers', function () {
          const req = make({
             ...base,
             headers: {
@@ -188,10 +188,10 @@ describe('request-transformers', function () {
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
             url,
             method,
-            remoteAddress: '127.0.0.1',
+            remoteIp: '127.0.0.1',
          })
       })
-      it('should not include remoteAddress derived from x-forwarded-for headers', function () {
+      it('should not include remoteIp derived from x-forwarded-for headers', function () {
          const req = make({
             ...base,
             headers: {
@@ -229,7 +229,7 @@ describe('request-transformers', function () {
             referrer: 'https://google.com',
          })
       })
-      it('should include statusCode from req.res', function () {
+      it('should include responseStatusCode from req.res', function () {
          const req = make({
             ...base,
             res: make({ statusCode: 201 })
@@ -237,7 +237,7 @@ describe('request-transformers', function () {
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
             url,
             method,
-            statusCode: 201,
+            responseStatusCode: 201,
          })
       })
    })

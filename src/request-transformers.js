@@ -1,5 +1,5 @@
 /**
- * Converts a request (and its attached response) to a HttpRequest for Stackdriver LogEntry.
+ * Converts a request (and its attached response) to a `HttpRequest` for Stackdriver `LogEntry`.
  *
  * @param {import('express-serve-static-core').Request} req
  * @returns {import('../').LoggingHttpRequest}
@@ -12,10 +12,10 @@ function requestToHttpRequest(req) {
       requestUrl: url,
       requestMethod: method,
    }
-   if ('remoteAddress' in reportingReq) httpReq.remoteIp = reportingReq.remoteAddress
+   if ('remoteIp' in reportingReq) httpReq.remoteIp = reportingReq.remoteIp
    if ('referrer' in reportingReq) httpReq.referer = reportingReq.referrer
    if ('userAgent' in reportingReq) httpReq.userAgent = reportingReq.userAgent
-   if ('statusCode' in reportingReq) httpReq.status = reportingReq.statusCode
+   if ('responseStatusCode' in reportingReq) httpReq.status = reportingReq.responseStatusCode
 
    // Add in extra request info
    const requestSize = req.get('content-length')
@@ -32,25 +32,32 @@ function requestToHttpRequest(req) {
 }
 
 /**
- * Converts a request (and its attached response) to a HttpRequestContext for Stackdriver error reporting.
+ * Converts a request (and its attached response) to a `HttpRequestContext` for Stackdriver error reporting.
  * See https://cloud.google.com/error-reporting/reference/rest/v1beta1/ErrorContext#httprequestcontext
+ * @typedef {object} HttpRequestContext
+ * @prop {string} method
+ * @prop {string} url
+ * @prop {string} [userAgent]
+ * @prop {string} [referrer]
+ * @prop {number} [responseStatusCode]
+ * @prop {string} [remoteIp]
  *
  * @param {import('express-serve-static-core').Request} req
  */
 function requestToErrorReportingHttpRequest(req) {
-   /** @type {import('@google-cloud/error-reporting/build/src/request-extractors/manual').Request} */
+   /** @type {HttpRequestContext} */
    const httpReq = {
       url: req.originalUrl,
       method: req.method,
-      remoteAddress: req.ip || (Array.isArray(req.ips) ? req.ips[0] : null)
+      remoteIp: req.ip || (Array.isArray(req.ips) ? req.ips[0] : null)
    }
 
-   if (!httpReq.remoteAddress) {
+   if (!httpReq.remoteIp) {
       const headerIps = req.get('x-forwarded-for')
       if (headerIps && (!Array.isArray(headerIps) || headerIps.length > 0)) {
-         httpReq.remoteAddress = Array.isArray(headerIps) ? headerIps[0] : headerIps
+         httpReq.remoteIp = Array.isArray(headerIps) ? headerIps[0] : headerIps
       } else {
-         delete httpReq.remoteAddress
+         delete httpReq.remoteIp
       }
    }
 
@@ -60,7 +67,7 @@ function requestToErrorReportingHttpRequest(req) {
    const referrer = req.get('referrer')
    if (referrer !== undefined) httpReq.referrer = referrer
 
-   if (req.res) httpReq.statusCode = req.res.statusCode
+   if (req.res) httpReq.responseStatusCode = req.res.statusCode
 
    return httpReq
 }

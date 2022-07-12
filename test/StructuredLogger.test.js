@@ -4,29 +4,25 @@ const { LogSeverity } = require('..')
 
 const sinon = createSandbox()
 
+const SERVICE_CONTEXT = {
+   service: 'SERVICE',
+   version: 'VERSION',
+}
+
 describe('StructuredLogger', function () {
    /** @type {import('../src/StructuredLogger')} */
    let loggers
-   /** @type {sinon.SinonStub<[], import('@google-cloud/error-reporting').ErrorReporting>} */
-   let errorReporter
    /** @type {string} */
    let NODE_ENV
    /** @type {sinon.SinonFakeTimers} */
    let fakeTimers
    before(function () {
       loggers = require('../src/StructuredLogger')
-      const { ErrorReporting } = require('@google-cloud/error-reporting')
-      errorReporter = sinon.stub().returns(new ErrorReporting({
-         reportMode: 'never',
-         reportUnhandledRejections: false,
-      }))
    })
    after(function () {
       sinon.restore()
    })
    beforeEach(function () {
-      errorReporter.resetHistory();
-
       ({ NODE_ENV } = process.env)
    })
    afterEach(function () {
@@ -69,21 +65,22 @@ describe('StructuredLogger', function () {
    const logName = 'log-name'
 
    it('should create object', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
       assert.propertyVal(l, '_productionTransport', null)
       assert.deepPropertyVal(l, '_labels', { log_name: logName })
-      sinon.assert.notCalled(errorReporter)
    })
 
    it('should create object with provided production transport', function () {
       const productionTransport = () => { }
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, null)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
       assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName })
    })
@@ -92,10 +89,11 @@ describe('StructuredLogger', function () {
       const labels = {
          hello: 'world'
       }
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null, labels)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, labels)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels })
    })
 
@@ -105,31 +103,31 @@ describe('StructuredLogger', function () {
          hello: 'world'
       }
       const type = 'TYPE'
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, labels).child(type)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, labels).child(type)
 
       assert.instanceOf(l, loggers.StructuredLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
       assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels, type })
-      sinon.assert.notCalled(errorReporter)
    })
 
    it('should create request logger', function () {
       const productionTransport = () => { }
       const req = make()
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, null)._requestChild(req)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)._requestChild(req)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
       assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'request' })
       // StructuredRequestLogger
-      assert.propertyVal(l, '_errorReporter', errorReporter)
       assert.propertyVal(l, '_request', req)
       assert.isUndefined(l._extractUser)
-      sinon.assert.notCalled(errorReporter)
    })
 
    it('should create request logger with extractUser', function () {
@@ -139,28 +137,18 @@ describe('StructuredLogger', function () {
       const labels = {
          hello: 'world'
       }
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, labels)._requestChild(req, extractUser)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, labels)._requestChild(req, extractUser)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
       assert.propertyVal(l, '_productionTransport', productionTransport)
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels, type: 'request' })
       // StructuredRequestLogger
-      assert.propertyVal(l, '_errorReporter', errorReporter)
       assert.propertyVal(l, '_request', req)
       assert.propertyVal(l, '_extractUser', extractUser)
       assert.property(l, '_trace')
-   })
-
-   it('should use same error reporter each time', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
-
-      const e1 = l._errorReporter()
-      sinon.assert.calledOnceWithExactly(errorReporter)
-      const e2 = l._errorReporter()
-      sinon.assert.calledTwice(errorReporter)
-      assert.strictEqual(e1, e2)
    })
 
    describe('Logging methods', function () {
@@ -170,7 +158,7 @@ describe('StructuredLogger', function () {
       /** @type {sinon.SinonSpy} */
       let writeSpy
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
          writeSpy = sinon.spy(logger, '_write')
       })
       beforeEach(function () {
@@ -461,7 +449,7 @@ describe('StructuredLogger', function () {
 
                const productionTransport = sinon.spy(/** @type {import('../').Transport} */_entry => { })
                before(function () {
-                  logger = new loggers.StructuredLogger(projectId, logName, errorReporter, productionTransport, null)
+                  logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)
                   writeSpy = sinon.spy(logger, '_write')
                })
                beforeEach(function () {
@@ -555,10 +543,6 @@ describe('StructuredLogger', function () {
             'empty array': []
          }
 
-         afterEach('should get error reporter on each call', function () {
-            sinon.assert.calledOnceWithExactly(errorReporter)
-         })
-
          for (const arg in ARGS) {
 
             it(`should allow ${arg}`, function () {
@@ -601,11 +585,92 @@ describe('StructuredLogger', function () {
             sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.ERROR }), sinonMatch.object)
          })
 
-         it('should clean up stack trace generated by ErrorReporting', function () {
+         it('should include eventTime', function () {
+            const timestamp = new Date()
+            fakeTimers = sinon.useFakeTimers({
+               now: timestamp,
+               toFake: ['Date']
+            })
+
             logger.reportError('Error string')
 
             const data = writeSpy.lastCall.lastArg
 
+            assert.strictEqual(data.eventTime, timestamp.toISOString())
+         })
+
+         it('should generate stack trace', function () {
+            const errorMessage = 'Error string'
+            const obj = new Error(errorMessage)
+            logger.reportError(errorMessage)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should use Error stack trace', function () {
+            const err = new Error('Error object')
+            logger.reportError(err)
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.strictEqual(data.message, err.stack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should generate stack trace for non-Error object', function () {
+            const errorMessage = 'Object'
+            const err = { message: errorMessage }
+            const obj = new Error(errorMessage)
+            logger.reportError(err)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should generate stack trace for non-Error object with toString()', function () {
+            const errorMessage = 'Object'
+            const err = { message: 'MESSAGE:' + errorMessage, toString: () => errorMessage }
+            const obj = new Error(errorMessage)
+            logger.reportError(err)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
             assert.notInclude(data.message, '/src/StructuredLogger.js')
          })
 
@@ -642,6 +707,22 @@ describe('StructuredLogger', function () {
             assert.notNestedProperty(data, 'context.reportLocation')
             assert.notNestedProperty(data, 'context.httpRequest')
             assert.nestedPropertyVal(data, 'context.user', USER)
+         })
+
+         it('should include service context', function () {
+            logger.reportError('Error')
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.deepNestedPropertyVal(data, 'serviceContext', SERVICE_CONTEXT)
+         })
+
+         it('should not include context', function () {
+            logger.reportError('Error')
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.notProperty(data, 'context')
          })
       })
 
@@ -778,7 +859,7 @@ describe('StructuredLogger', function () {
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, errorReporter, null, null)
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
       })
 
       it('should include trace for request (NODE_ENV!=production)', function () {
@@ -786,7 +867,7 @@ describe('StructuredLogger', function () {
          const spanId = 288377245651
 
          const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
-         const log = logger._requestChild(req, errorReporter)
+         const log = logger._requestChild(req)
 
          const method = 'log'
          const severity = methods[method]
@@ -803,7 +884,7 @@ describe('StructuredLogger', function () {
          const spanId = 288377245651
 
          const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
-         const log = logger._requestChild(req, errorReporter)
+         const log = logger._requestChild(req)
 
          const method = 'log'
          const severity = methods[method]
@@ -822,15 +903,15 @@ describe('StructuredLogger', function () {
             const spanId = 288377245651
 
             const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
-            const log = logger._requestChild(req, errorReporter)
+            const log = logger._requestChild(req)
 
             const l = log.child('CHILD')
 
             assert.instanceOf(l, loggers.StructuredRequestLogger)
             assert.propertyVal(l, '_projectId', projectId)
             assert.propertyVal(l, '_logName', logName)
+            assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
             assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'CHILD' })
-            sinon.assert.notCalled(errorReporter)
          })
 
          it('should use parents trace', function () {
@@ -838,7 +919,7 @@ describe('StructuredLogger', function () {
             const spanId = 288377245651
 
             const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
-            const log = logger._requestChild(req, errorReporter)
+            const log = logger._requestChild(req)
 
             const l = log.child('CHILD')
 
@@ -848,13 +929,14 @@ describe('StructuredLogger', function () {
 
       describe('#reportError', function () {
 
-         afterEach('should get error reporter on each call', function () {
-            sinon.assert.calledOnceWithExactly(errorReporter)
-         })
+         it('should include eventTime', function () {
+            const timestamp = new Date()
+            fakeTimers = sinon.useFakeTimers({
+               now: timestamp,
+               toFake: ['Date']
+            })
 
-         it('should clean up stack trace generated by ErrorReporting', function () {
-            const req = make()
-            const log = logger._requestChild(req)
+            const log = logger._requestChild(make())
 
             const writeSpy = sinon.spy(log, '_write')
 
@@ -862,6 +944,97 @@ describe('StructuredLogger', function () {
 
             const data = writeSpy.lastCall.lastArg
 
+            assert.strictEqual(data.eventTime, timestamp.toISOString())
+         })
+
+         it('should generate stack trace', function () {
+            const log = logger._requestChild(make())
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const errorMessage = 'Error string'
+            const obj = new Error(errorMessage)
+            log.reportError(errorMessage)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should use Error stack trace', function () {
+            const log = logger._requestChild(make())
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const err = new Error('Error object')
+            log.reportError(err)
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.strictEqual(data.message, err.stack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should generate stack trace for non-Error object', function () {
+            const log = logger._requestChild(make())
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const errorMessage = 'Error string'
+            const err = { message: errorMessage }
+            const obj = new Error(errorMessage)
+            log.reportError(errorMessage)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should generate stack trace for non-Error object with toString()', function () {
+            const log = logger._requestChild(make())
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const errorMessage = 'Error string'
+            const err = { message: 'MESSAGE: ' + errorMessage, toString: () => errorMessage }
+            const obj = new Error(errorMessage)
+            log.reportError(errorMessage)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
             assert.notInclude(data.message, '/src/StructuredLogger.js')
          })
 
@@ -896,6 +1069,47 @@ describe('StructuredLogger', function () {
             sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ context: sinonMatch(ctx => !ctx.user && !ctx.reportLocation && ctx.httpRequest) }))
 
             sinon.assert.calledOnceWithExactly(extractUser, req)
+         })
+
+         it('should include service context', function () {
+            const log = logger._requestChild(make())
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            log.reportError('Error string')
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.deepNestedPropertyVal(data, 'serviceContext', SERVICE_CONTEXT)
+         })
+
+         it('should include context', function () {
+            const method = 'POST'
+            const url = 'http://localhost:3000/path'
+            const userAgent = 'some-user-agent'
+            const referrer = 'http://localhost:3001/website'
+            const ips = ['127.0.0.1', '30.0.0.0']
+            const statusCode = 400
+
+            const req = make({ method, originalUrl: url, ips, headers: { 'user-agent': userAgent, referrer }, res: { statusCode } })
+            const log = logger._requestChild(req)
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            log.reportError('Error string')
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.deepNestedPropertyVal(data, 'context', {
+               httpRequest: {
+                  method,
+                  url,
+                  userAgent,
+                  referrer,
+                  remoteIp: ips[0],
+                  responseStatusCode: statusCode,
+               }
+            })
          })
       })
    })

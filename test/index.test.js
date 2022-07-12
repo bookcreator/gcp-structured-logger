@@ -81,18 +81,6 @@ describe('index.js', function () {
          })
          assert.instanceOf(l.logger, require('../src/StructuredLogger').StructuredLogger)
       })
-      it('logger property should reuse error reporter', function () {
-         const l = new logger.Logging({
-            projectId,
-            logName,
-            serviceContext,
-         })
-         const loggerE = l.logger._errorReporter()
-         assert.instanceOf(loggerE, require('@google-cloud/error-reporting').ErrorReporting)
-         // Should match Logging property
-         assert.strictEqual(loggerE, l._errorReporter)
-         assert.strictEqual(l.logger._errorReporter(), loggerE)
-      })
       it('should use serviceContext property', function () {
          const serviceContext = {
             service: 'tests',
@@ -114,51 +102,6 @@ describe('index.js', function () {
             productionTransport
          })
          assert.strictEqual(l.logger._productionTransport, productionTransport)
-      })
-
-      context('#_errorReporter', function () {
-
-         it('should initially not be set', function () {
-            const serviceContext = {
-               service: 'tests',
-               version: 'debug'
-            }
-            const l = new logger.Logging({
-               projectId,
-               logName,
-               serviceContext
-            })
-            assert.notProperty(l, '__errorReporter')
-         })
-         it('should set after first call and use serviceContext', function () {
-            const serviceContext = {
-               service: 'tests',
-               version: 'debug'
-            }
-            const l = new logger.Logging({
-               projectId,
-               logName,
-               serviceContext
-            })
-            const e = l._errorReporter
-            assert.deepStrictEqual(e._config._serviceContext, serviceContext)
-            assert.deepPropertyVal(l, '__errorReporter', e)
-         })
-         it('should reuse previous value', function () {
-            const serviceContext = {
-               service: 'tests',
-               version: 'debug'
-            }
-            const l = new logger.Logging({
-               projectId,
-               logName,
-               serviceContext
-            })
-            const e = l._errorReporter
-            assert.deepStrictEqual(e._config._serviceContext, serviceContext)
-            assert.strictEqual(l._errorReporter, e)
-            assert.strictEqual(l._errorReporter, l._errorReporter)
-         })
       })
 
       context('#makeLoggingMiddleware', function () {

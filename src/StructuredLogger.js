@@ -1,4 +1,4 @@
-const { format, formatWithOptions } = require('util')
+const { format, formatWithOptions, inspect } = require('util')
 const { LogSeverity, CONSOLE_SEVERITY } = require('./severity')
 const cleanupForJSON = require('./cleanup-for-json')
 const getTraceContext = require('./trace-context')
@@ -37,17 +37,17 @@ class StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
+    * @param {import('../').ServiceContext} serviceContext
     * @param {?import('../').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
     */
-   constructor(projectId, logName, errorReporter, productionTransport, labels) {
+   constructor(projectId, logName, serviceContext, productionTransport, labels) {
       /** @readonly @private */
       this._projectId = projectId
       /** @readonly @private */
       this._logName = logName
       /** @readonly @private */
-      this._errorReporter = errorReporter
+      this._serviceContext = serviceContext
       /** @readonly @private */
       this._productionTransport = productionTransport
       /** @readonly @protected */
@@ -61,7 +61,7 @@ class StructuredLogger {
     * @returns {StructuredLogger}
     */
    child(type) {
-      return new StructuredLogger(this._projectId, this._logName, this._errorReporter, this._productionTransport, { ...this._labels, type })
+      return new StructuredLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type })
    }
 
    /**
@@ -70,7 +70,7 @@ class StructuredLogger {
     * @param {?import('../').ExtractUser} extractUser
     */
    _requestChild(request, extractUser) {
-      return new StructuredRequestLogger(this._projectId, this._logName, this._errorReporter, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
+      return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
    }
 
    /** @param {any[]} args */
@@ -128,9 +128,7 @@ class StructuredLogger {
          severity = LogSeverity.ERROR
          if (err && typeof err === 'object' && err.severity in LogSeverity) severity = err.severity
       }
-      const event = this._makeReportableError(this._errorReporter(), err)
-      // Remove report location as the stack trace is used
-      delete event.context.reportLocation
+      const event = { eventTime: timestamp.toISOString(), ...this._makeReportableError(err) }
       if (!event.context.user) delete event.context.user
       if (!event.context.user && !event.context.httpRequest) delete event.context
       if (event.message.indexOf(__filename) !== -1) {
@@ -252,13 +250,47 @@ class StructuredLogger {
    }
 
    /**
+    * @typedef {object} ReportedErrorEvent
+    * @prop {import('../').ServiceContext} serviceContext
+    * @prop {string} message
+    * @prop {{ httpRequest?: import('./request-transformers').HttpRequestContext, user?: string }} context
+    *
     * @protected
-    * @param {import('@google-cloud/error-reporting').ErrorReporting} errorReporter
     * @param {any} err
     */
-   _makeReportableError(errorReporter, err) {
-      const event = errorReporter.report(err)
-      delete event.context.httpRequest
+   _makeReportableError(err) {
+      /** @type {string?} */
+      let message
+      {
+         let hasStack = false
+         if (err && typeof err === 'object') {
+            if (err.stack) {
+               message = err.stack
+               hasStack = true
+            } else {
+               message = (typeof err.toString === 'function' && err.toString() !== String({})) ? err.toString() : err.message
+            }
+         } else {
+            message = typeof err === 'string' ? err : String(err)
+         }
+
+         if (!message) message = inspect(err)
+         if (!hasStack) {
+            message += '\n'
+            const trace = {}
+            Error.captureStackTrace(trace, this._makeReportableError)
+            // Remove first line
+            message += trace.stack.slice(trace.stack.indexOf('\n') + 1)
+         }
+      }
+
+      /** @type {ReportedErrorEvent} */
+      const event = {
+         message,
+         serviceContext: { ...this._serviceContext },
+         context: {},
+      }
+      if (typeof err === 'object' && err && err.user) event.context.user = String(err.user)
       return event
    }
 
@@ -430,14 +462,14 @@ class StructuredRequestLogger extends StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {() => import('@google-cloud/error-reporting').ErrorReporting} errorReporter
+    * @param {import('../').ServiceContext} serviceContext
     * @param {import('../').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
     * @param {import('express-serve-static-core').Request} request
     * @param {?import('../').ExtractUser} extractUser
     */
-   constructor(projectId, logName, errorReporter, productionTransport, labels, request, extractUser) {
-      super(projectId, logName, errorReporter, productionTransport, labels)
+   constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
+      super(projectId, logName, serviceContext, productionTransport, labels)
       /** @readonly @private */
       this._request = request
       /** @readonly @private */
@@ -457,15 +489,15 @@ class StructuredRequestLogger extends StructuredLogger {
    }
 
    /**
-    * @param {import('@google-cloud/error-reporting').ErrorReporting} errorReporter
     * @param {any} err
     */
-   _makeReportableError(errorReporter, err) {
+   _makeReportableError(err) {
+      const event = super._makeReportableError(err)
       // Add in request and user info
-      const event = errorReporter.report(err, requestToErrorReportingHttpRequest(this._request))
+      event.context = { httpRequest: requestToErrorReportingHttpRequest(this._request) }
       if (typeof this._extractUser === 'function') {
          const user = this._extractUser(this._request)
-         if (user) event.setUser(user)
+         if (user) event.context.user = user
       }
       return event
    }
