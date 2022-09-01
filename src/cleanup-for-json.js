@@ -54,10 +54,10 @@ module.exports = function cleanupForJSON(obj) {
          } else if (Symbol.iterator in _obj && typeof _obj[Symbol.iterator] === 'function') {
             val = convert([..._obj], parentKey)
          } else if (types.isNativeError(_obj) || _obj instanceof Error) {
-            let { name, stack, message, ...props } = _obj
+            let { name, stack, message, cause, ...props } = _obj
             // If the error name is just Error see if we've got a custom class name for it
             if (name === 'Error' && typeof _obj.constructor === 'function' && _obj.constructor.name) name = _obj.constructor.name
-            val = convert({ ...props, name, stack, message }, parentKey)
+            val = convert({ ...props, name, stack, message, cause }, parentKey)
          } else {
             val = {}
             for (const k in _obj) val[k] = convert(_obj[k], k)

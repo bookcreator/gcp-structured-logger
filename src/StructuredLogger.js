@@ -138,9 +138,11 @@ class StructuredLogger {
       // If we had an error object copy over enumerable properties
       if (err && typeof err === 'object') {
          // @ts-ignore
-         const { message: _message, stack: _stack, ...props } = err
+         const { message: _message, stack: _stack, cause, ...props } = err
          // @ts-ignore
          event.error = props
+         // @ts-ignore
+         if (cause !== undefined) event.error.cause = cause
       }
       this._write({ severity, timestamp }, event)
    }

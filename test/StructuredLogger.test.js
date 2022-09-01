@@ -9,6 +9,11 @@ const SERVICE_CONTEXT = {
    version: 'VERSION',
 }
 
+const SUPPORTS_NATIVE_ERROR_CAUSE = (() => {
+   const cause = {}
+   return new Error('', { cause }).cause === cause
+})()
+
 describe('StructuredLogger', function () {
    /** @type {import('../src/StructuredLogger')} */
    let loggers
@@ -694,6 +699,18 @@ describe('StructuredLogger', function () {
                   originalError: sinonMatch.same(error.originalError)
                }
             }))
+         })
+
+         it('should use include errors cause', function () {
+            const cause = new Error('CAUSE')
+            const error = SUPPORTS_NATIVE_ERROR_CAUSE ? new Error('TOP LEVEL', { cause }) : (() => {
+               const e = new Error('TOP LEVEL')
+               e.cause = cause
+               return e
+            })()
+            logger.reportError(error)
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ error: { cause } }))
          })
 
          it('should include error.user on context', function () {

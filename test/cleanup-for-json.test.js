@@ -4,6 +4,11 @@ const sinon = require('sinon')
 
 const cleanupForJSON = require('../src/cleanup-for-json')
 
+const SUPPORTS_NATIVE_ERROR_CAUSE = (() => {
+   const cause = {}
+   return new Error('', { cause }).cause === cause
+})()
+
 describe('cleanup-for-json', function () {
 
    describe('Buffers', function () {
@@ -138,6 +143,7 @@ describe('cleanup-for-json', function () {
             name: 'Error',
             stack: e.stack,
             message: e.message,
+            cause: undefined,
          })
       })
       it('should serialise to object (Error subclass)', function () {
@@ -146,6 +152,7 @@ describe('cleanup-for-json', function () {
             name: 'TypeError',
             stack: e.stack,
             message: e.message,
+            cause: undefined,
          })
       })
       it('should serialise to object (Error prototype)', function () {
@@ -154,6 +161,7 @@ describe('cleanup-for-json', function () {
             name: 'Error',
             stack: undefined,
             message: '',
+            cause: undefined,
          })
       })
       it('should serialise to object (custom Error subclass)', function () {
@@ -163,6 +171,7 @@ describe('cleanup-for-json', function () {
             name: 'CustomError',
             stack: e.stack,
             message: e.message,
+            cause: undefined,
          })
       })
       it('should serialise nested Error to object', function () {
@@ -179,20 +188,44 @@ describe('cleanup-for-json', function () {
                name: 'Error',
                stack: err1.stack,
                message: err1.message,
+               cause: undefined,
             },
             array: [
                {
                   name: 'Error',
                   stack: err2.stack,
                   message: err2.message,
+                  cause: undefined,
                   code: err2.code,
                },
                {
                   name: 'TypeError',
                   stack: err3.stack,
                   message: err3.message,
+                  cause: undefined,
                }
             ]
+         })
+      })
+
+      it('should serialise Errors cause', function () {
+         const cause = new Error('CAUSE')
+         const error = SUPPORTS_NATIVE_ERROR_CAUSE ? new Error('TOP LEVEL', { cause }) : (() => {
+            const e = new Error('TOP LEVEL')
+            e.cause = cause
+            return e
+         })()
+
+         assert.deepStrictEqual(cleanupForJSON(error), {
+            name: 'Error',
+            stack: error.stack,
+            message: error.message,
+            cause: {
+               name: 'Error',
+               stack: cause.stack,
+               message: cause.message,
+               cause: undefined,
+            }
          })
       })
 
@@ -204,6 +237,7 @@ describe('cleanup-for-json', function () {
                name: 'Error',
                stack: e.stack,
                message: e.message,
+               cause: undefined,
                code: e.code,
             })
          })
@@ -214,6 +248,7 @@ describe('cleanup-for-json', function () {
                name: 'Error',
                stack: undefined,
                message: '',
+               cause: undefined,
                code: e.code,
             })
          })
@@ -232,6 +267,7 @@ describe('cleanup-for-json', function () {
                name: 'CustomError',
                stack: e.stack,
                message: e.message,
+               cause: undefined,
                code: e.code,
                properties: e.properties,
             })
