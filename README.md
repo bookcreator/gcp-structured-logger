@@ -1,5 +1,6 @@
 # GCP Structured Logger 
 [![Node.js CI](https://github.com/bookcreator/gcp-structured-logger/workflows/Node.js%20CI/badge.svg)](https://github.com/bookcreator/gcp-structured-logger/actions?query=workflow%3A%22Node.js+CI%22)
+[![npm version](https://img.shields.io/npm/v/gcp-structured-logger.svg)](https://www.npmjs.org/package/gcp-structured-logger)
 
 Outputs [structured logs](https://cloud.google.com/run/docs/logging#writing_structured_logs) that are formatted in GCP logging.
 
