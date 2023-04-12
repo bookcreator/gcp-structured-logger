@@ -36,10 +36,10 @@
     "@types/express-serve-static-core": "^4.17.33",
     "c8": "^7.13.0",
     "chai": "^4.3.7",
-    "eslint": "^8.36.0",
+    "eslint": "^8.38.0",
     "eslint-plugin-mocha": "^10.0.5",
     "eslint-plugin-node": "^11.1.0",
     "mocha": "^10.2.0",
-    "sinon": "^15.0.2"
+    "sinon": "^15.0.3"
   }
 }
