@@ -148,6 +148,15 @@ class StructuredLogger {
    }
 
    /**
+    * Matches `console.assert`.
+    * @param {any} expression
+    * @param  {any[]} args
+    */
+   assert(expression, ...args) {
+      if (!expression) this._writeFormatted('WARNING', ['Assertion failed' + (args.length > 0 ? ':' : ''), ...args])
+   }
+
+   /**
     * Matches `console.time` but the label argument is required.
     * @param {string} label
     */

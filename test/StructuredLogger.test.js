@@ -743,6 +743,58 @@ describe('StructuredLogger', function () {
          })
       })
 
+      describe('#assert', function () {
+
+         const truthyValues = [
+            true,
+            1,
+            -1,
+            0.1,
+            1n,
+            'true',
+            'hello',
+            [],
+            {},
+         ]
+
+         for (const value of truthyValues) {
+            it(`should not log anything when expression is truthy [${value}]`, function () {
+               logger.assert(value)
+
+               sinon.assert.notCalled(writeSpy)
+            })
+         }
+
+         const falsyValues = [
+            false,
+            0,
+            0n,
+            '',
+            undefined,
+            null
+         ]
+
+         for (const value of falsyValues) {
+            it(`should log when expression is falsy [${value}]`, function () {
+               logger.assert(value)
+
+               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.WARNING }), sinonMatch.any)
+            })
+         }
+
+         it('should add assertion failure message when not arguments are provided', function () {
+            logger.assert(false)
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.WARNING }), 'Assertion failed')
+         })
+
+         it('should prepend assertion failure message to arguments', function () {
+            logger.assert(false, 'Hello, world!')
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.WARNING }), 'Assertion failed: Hello, world!')
+         })
+      })
+
       describe('#time*', function () {
 
          describe('#time', function () {
