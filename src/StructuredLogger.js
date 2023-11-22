@@ -375,6 +375,7 @@ class StructuredLogger {
          metadata.severity = LogSeverity.DEFAULT
       }
 
+      // @ts-expect-error: message not returned
       const { message, ...messageData } = (() => {
          if (typeof data === 'object' && data) {
             return data
