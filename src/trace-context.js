@@ -4,7 +4,7 @@ const TRACE_CONTEXT_HEADER_FORMAT = /^([0-9a-fA-F]+)(?:\/([0-9]+))(?:;o=(.*))?/
 
 /**
  * @param {string} projectId
- * @param {import('express-serve-static-core').Request} req
+ * @param {import('./StructuredLogger').Request} req
  * @returns {{} | { trace: string, spanId: string }}
  */
 module.exports = function extractTraceContext(projectId, req) {

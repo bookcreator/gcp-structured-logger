@@ -18,7 +18,7 @@ class Logging {
 
    /**
     * @private
-    * @param {import('express-serve-static-core').Request} req
+    * @param {import('./src/StructuredLogger').Request} req
     */
    _makeRequestLog(req) {
       // @ts-ignore

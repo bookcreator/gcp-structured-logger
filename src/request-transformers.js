@@ -1,7 +1,9 @@
+/** @typedef {import('./StructuredLogger').Request} Request */
+
 /**
  * Converts a request (and its attached response) to a `HttpRequest` for Stackdriver `LogEntry`.
  *
- * @param {import('express-serve-static-core').Request} req
+ * @param {Request} req
  * @returns {import('../').LoggingHttpRequest}
  */
 function requestToHttpRequest(req) {
@@ -42,7 +44,7 @@ function requestToHttpRequest(req) {
  * @prop {number} [responseStatusCode]
  * @prop {string} [remoteIp]
  *
- * @param {import('express-serve-static-core').Request} req
+ * @param {Request} req
  */
 function requestToErrorReportingHttpRequest(req) {
    /** @type {HttpRequestContext} */

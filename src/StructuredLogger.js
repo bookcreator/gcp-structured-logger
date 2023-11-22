@@ -32,6 +32,8 @@ const NS_SECOND = 1000n * NS_MILLISECOND
 const NS_MINUTE = 60n * NS_SECOND
 const NS_HOUR = 60n * NS_MINUTE
 
+/** @typedef {import('express-serve-static-core').Request} Request */
+
 class StructuredLogger {
 
    /**
@@ -66,7 +68,7 @@ class StructuredLogger {
 
    /**
     * @protected
-    * @param {import('express-serve-static-core').Request} request
+    * @param {Request} request
     * @param {import('../').ExtractUser?} extractUser
     */
    _requestChild(request, extractUser) {
@@ -476,7 +478,7 @@ class StructuredRequestLogger extends StructuredLogger {
     * @param {import('../').ServiceContext} serviceContext
     * @param {import('../').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
-    * @param {import('express-serve-static-core').Request} request
+    * @param {Request} request
     * @param {import('../').ExtractUser?} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
