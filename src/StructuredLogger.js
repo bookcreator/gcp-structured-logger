@@ -38,7 +38,7 @@ class StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
-    * @param {?import('../').Transport} productionTransport
+    * @param {import('../').Transport?} productionTransport
     * @param {{ [key: string]: string }} labels
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels) {
@@ -67,7 +67,7 @@ class StructuredLogger {
    /**
     * @protected
     * @param {import('express-serve-static-core').Request} request
-    * @param {?import('../').ExtractUser} extractUser
+    * @param {import('../').ExtractUser?} extractUser
     */
    _requestChild(request, extractUser) {
       return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
@@ -477,7 +477,7 @@ class StructuredRequestLogger extends StructuredLogger {
     * @param {import('../').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
     * @param {import('express-serve-static-core').Request} request
-    * @param {?import('../').ExtractUser} extractUser
+    * @param {import('../').ExtractUser?} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
       super(projectId, logName, serviceContext, productionTransport, labels)

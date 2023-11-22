@@ -66,7 +66,7 @@ Can be use with [`express`](http://expressjs.com) as a logging middleware and er
 If the `err` has a `statusCode` or `status` property that is greater or equal to 500, then the severity of the err is set to `WARNING`.
 
 ```js
-const express = require('express') express()
+const express = require('express')
 
 const app = express()
 
