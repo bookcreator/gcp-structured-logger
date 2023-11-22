@@ -88,6 +88,24 @@ app.use((req, res, next) => next({ status: 404, message: 'Not found' }))
 app.use(logger.makeErrorMiddleware())
 ```
 
+
+## With NextJS
+
+Can be use Next.js in the [middleware file](https://nextjs.org/docs/app/building-your-application/routing/middleware#convention), it should be added as the first middleware (to allow you to use `req.log` in future middlewares).
+This then adds the `.log` property onto all requests.
+
+```ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+ 
+export function middleware(request: NextRequest) {
+   logger.nextJSMiddleware(request);
+
+   // Continue or do usual middleware handling
+   return NextResponse.next();
+}
+```
+
 You can also pass in a `requestUserExtractor` function when creating a `Logging` instance for setting the [user](https://cloud.google.com/error-reporting/reference/rest/v1beta1/ErrorContext#FIELDS.user) of the error.
 
 This is useful if you've attached the logged in user, etc. to the request or the headers contains some user info.

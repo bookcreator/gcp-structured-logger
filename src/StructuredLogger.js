@@ -32,7 +32,7 @@ const NS_SECOND = 1000n * NS_MILLISECOND
 const NS_MINUTE = 60n * NS_SECOND
 const NS_HOUR = 60n * NS_MINUTE
 
-/** @typedef {import('express-serve-static-core').Request} Request */
+/** @typedef {import('express-serve-static-core').Request | import('next/server').NextRequest} Request */
 
 class StructuredLogger {
 

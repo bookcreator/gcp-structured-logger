@@ -1,3 +1,5 @@
+const { getUrl, getHeader, getProtocol, getRemoteIp, getResponse } = require('./request-properties')
+
 /** @typedef {import('./StructuredLogger').Request} Request */
 
 /**
@@ -8,25 +10,28 @@
  */
 function requestToHttpRequest(req) {
    // Copy from reporting
-   const { url, method, ...reportingReq } = requestToErrorReportingHttpRequest(req)
+   const { url, method, responseStatusCode, referrer, ...reportingReq } = requestToErrorReportingHttpRequest(req)
    /** @type {import('../').LoggingHttpRequest} */
    const httpReq = {
       requestUrl: url,
       requestMethod: method,
+      ...reportingReq,
    }
-   if ('remoteIp' in reportingReq) httpReq.remoteIp = reportingReq.remoteIp
-   if ('referrer' in reportingReq) httpReq.referer = reportingReq.referrer
-   if ('userAgent' in reportingReq) httpReq.userAgent = reportingReq.userAgent
-   if ('responseStatusCode' in reportingReq) httpReq.status = reportingReq.responseStatusCode
+
+   if (referrer !== undefined) httpReq.referer = referrer
+   if (responseStatusCode !== undefined) httpReq.status = responseStatusCode
 
    // Add in extra request info
-   const requestSize = req.get('content-length')
-   if (requestSize !== undefined) httpReq.requestSize = parseInt(requestSize)
-   if (req.protocol) httpReq.protocol = req.protocol + '/' + req.httpVersion
+   const protocol = getProtocol(req)
+   if (protocol !== undefined) httpReq.protocol = protocol
 
-   if (req.res) {
+   const requestSize = getHeader(req, 'content-length')
+   if (requestSize !== undefined) httpReq.requestSize = parseInt(requestSize)
+
+   const res = getResponse(req)
+   if (res) {
       // Response info
-      const responseSize = req.res.get('content-length')
+      const responseSize = res.get('content-length')
       if (responseSize !== undefined) httpReq.responseSize = parseInt(responseSize)
    }
 
@@ -49,27 +54,21 @@ function requestToHttpRequest(req) {
 function requestToErrorReportingHttpRequest(req) {
    /** @type {HttpRequestContext} */
    const httpReq = {
-      url: req.originalUrl,
+      url: getUrl(req),
       method: req.method,
-      remoteIp: req.ip || (Array.isArray(req.ips) ? req.ips[0] : null)
    }
 
-   if (!httpReq.remoteIp) {
-      const headerIps = req.get('x-forwarded-for')
-      if (headerIps && (!Array.isArray(headerIps) || headerIps.length > 0)) {
-         httpReq.remoteIp = Array.isArray(headerIps) ? headerIps[0] : headerIps
-      } else {
-         delete httpReq.remoteIp
-      }
-   }
+   const remoteIp = getRemoteIp(req)
+   if (remoteIp !== undefined) httpReq.remoteIp = remoteIp
 
-   const userAgent = req.get('user-agent')
+   const userAgent = getHeader(req, 'user-agent')
    if (userAgent !== undefined) httpReq.userAgent = userAgent
 
-   const referrer = req.get('referrer')
+   const referrer = getHeader(req, 'referrer')
    if (referrer !== undefined) httpReq.referrer = referrer
 
-   if (req.res) httpReq.responseStatusCode = req.res.statusCode
+   const res = getResponse(req)
+   if (res) httpReq.responseStatusCode = res.statusCode
 
    return httpReq
 }

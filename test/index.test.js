@@ -156,6 +156,71 @@ describe('index.js', function () {
          })
       })
 
+      context('#nextJSMiddleware', function () {
+
+         /** @param {Partial<import('next/server').NextRequest>} obj */
+         const make = ({ headers, ...obj } = { headers: {} }) => ({
+            url: 'https://hello.com',
+            method: 'GET',
+            get headers() {
+               return {
+                  has(name) {
+                     for (const n in headers) {
+                        if (typeof name === 'string' && name.toLowerCase() === n.toLowerCase()) return true
+                     }
+                     return false
+                  },
+                  get(name) {
+                     for (const n in headers) {
+                        if (typeof name === 'string' && name.toLowerCase() === n.toLowerCase()) {
+                           return headers[n]
+                        }
+                     }
+                  }
+               }
+            }
+         })
+
+         it('should return void', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+            const req = make()
+
+            assert.isUndefined(l.nextJSMiddleware(req))
+         })
+
+         it('should attach log property', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+            const req = make()
+
+            l.nextJSMiddleware(req)
+
+            assert.instanceOf(req.log, require('../src/StructuredLogger').StructuredRequestLogger)
+         })
+
+         it('should include extractUser parameter on log property', function () {
+            const requestUserExtractor = sinon.stub()
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               requestUserExtractor,
+            })
+            const req = make()
+
+            l.nextJSMiddleware(req)
+
+            assert.nestedPropertyVal(req, 'log._extractUser', requestUserExtractor)
+         })
+      })
+
       context('#makeErrorMiddleware', function () {
 
          const requestUserExtractor = () => { }

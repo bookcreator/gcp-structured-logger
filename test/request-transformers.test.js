@@ -35,7 +35,7 @@ describe('request-transformers', function () {
             requestMethod: method,
          })
       })
-      it('should include remoteIp derived from req.ip', function () {
+      it('should include remoteIp derived', function () {
          const req = make({
             ...base,
             ip: '127.0.0.1'
@@ -143,7 +143,7 @@ describe('request-transformers', function () {
             method,
          })
       })
-      it('should include remoteIp derived from req.ip', function () {
+      it('should include remoteIp', function () {
          const req = make({
             ...base,
             ip: '127.0.0.1'
@@ -152,55 +152,6 @@ describe('request-transformers', function () {
             url,
             method,
             remoteIp: '127.0.0.1',
-         })
-      })
-      it('should include remoteIp derived from req.ips', function () {
-         const req = make({
-            ...base,
-            ips: ['127.0.0.1']
-         })
-         assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
-            url,
-            method,
-            remoteIp: '127.0.0.1',
-         })
-      })
-      it('should include remoteIp derived from x-forwarded-for header', function () {
-         const req = make({
-            ...base,
-            headers: {
-               'x-forwarded-for': '127.0.0.1'
-            }
-         })
-         assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
-            url,
-            method,
-            remoteIp: '127.0.0.1',
-         })
-      })
-      it('should include remoteIp derived from x-forwarded-for headers', function () {
-         const req = make({
-            ...base,
-            headers: {
-               'x-forwarded-for': ['127.0.0.1']
-            }
-         })
-         assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
-            url,
-            method,
-            remoteIp: '127.0.0.1',
-         })
-      })
-      it('should not include remoteIp derived from x-forwarded-for headers', function () {
-         const req = make({
-            ...base,
-            headers: {
-               'x-forwarded-for': []
-            }
-         })
-         assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
-            url,
-            method,
          })
       })
       it('should include userAgent derived from user-agent header', function () {

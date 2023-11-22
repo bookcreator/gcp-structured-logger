@@ -1,8 +1,10 @@
 /// <reference types="express-serve-static-core" />
+/// <reference types="next" />
 import { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-static-core';
 import { LogSeverity } from "./src/severity";
 import { StructuredLogger, StructuredRequestLogger } from './src/StructuredLogger';
 import { requestToHttpRequest } from "./src/request-transformers";
+import { NextRequest as _NextRequest } from 'next/server'
 
 /** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#httprequest */
 export interface LoggingHttpRequest {
@@ -43,7 +45,7 @@ export interface ServiceContext {
    service: string;
    version?: string;
 }
-export type ExtractUser = (req: Request) => string | null | void;
+export type ExtractUser = (req: Request | _NextRequest) => string | null | void;
 export type Transport = (entry: TransportLogEntry, data: string | { message?: string, [k: string]: any }) => void;
 export interface LoggingConfig {
    /** GCP project ID. */
@@ -71,6 +73,7 @@ export class Logging {
    makeLoggingMiddleware(): RequestHandler;
    /** This should be attached after adding the result of `makeLoggingMiddleware`. */
    makeErrorMiddleware(): ErrorRequestHandler;
+   nextJSMiddleware(req: _NextRequest): void;
    /** @returns A function to call to detach from the process. */
    attachToProcess(loggingTo: StructuredLogger): () => void;
 }
@@ -81,6 +84,10 @@ declare global {
       interface Request {
          readonly log: StructuredRequestLogger;
       }
+   }
+
+   declare interface NextRequest extends _NextRequest {
+      readonly log: StructuredRequestLogger;
    }
 }
 

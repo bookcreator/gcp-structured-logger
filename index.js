@@ -53,6 +53,13 @@ class Logging {
    }
 
    /**
+    * @param {import('next/server').NextRequest} req
+    */
+   nextJSMiddleware(req) {
+      Object.defineProperty(req, 'log', { value: this._makeRequestLog(req), enumerable: true, configurable: false })
+   }
+
+   /**
     * @param {StructuredLogger} loggingTo
     * @returns A function to call to detach from the process
     */
