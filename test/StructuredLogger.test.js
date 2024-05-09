@@ -938,7 +938,7 @@ describe('StructuredLogger', function () {
                return `(${__filename}:${Number(line) + 1}${suffix}`
             })
 
-            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Trace\n' + stack)
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEBUG }), 'Trace\n' + stack)
          })
 
          it('should append trace stack to arguments', function () {
@@ -955,7 +955,7 @@ describe('StructuredLogger', function () {
                return `(${__filename}:${Number(line) + 1}${suffix}`
             })
 
-            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Hello, world! \n' + stack)
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEBUG }), 'Hello, world! \n' + stack)
          })
       })
    })
