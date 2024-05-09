@@ -848,7 +848,7 @@ describe('StructuredLogger', function () {
                logger.time(LABEL)
                logger.timeEnd(LABEL)
 
-               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.date }), sinonMatch(new RegExp(`^${LABEL}: \\d+?\\.\\d{3}(m|µ|n)?s$`)))
+               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.date }), sinonMatch(new RegExp(`^${LABEL}: \\d+?(\\.\\d{3}[mµ]?|n)s$`)))
             })
 
             it('should remove time label', function () {
@@ -919,6 +919,21 @@ describe('StructuredLogger', function () {
                   assert.strictEqual(logger._formatDuration(ns), string)
                })
             }
+         })
+      })
+
+      describe('#trace', function () {
+
+         it('should add trace stack when no arguments are provided', function () {
+            logger.trace()
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Trace')
+         })
+
+         it('should append trace stack to arguments', function () {
+            logger.trace('Hello, world!')
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Hello, world!' + 'Trace')
          })
       })
    })
