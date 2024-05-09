@@ -925,15 +925,37 @@ describe('StructuredLogger', function () {
       describe('#trace', function () {
 
          it('should add trace stack when no arguments are provided', function () {
-            logger.trace()
+            // Make sure calling points are same variable length
+            const E = Error
+            const L = logger
+            const trace = {}
+            E.captureStackTrace(trace)
+            L.trace()
 
-            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Trace')
+            // Remove header from default stack trace and increment line number of first match of this file
+            const stack = /** @type {string} */(trace.stack).split('\n').slice(1).join('\n').replace(__filename, '__THIS_FILE__').replace(/(?<file>\(__THIS_FILE__):(?<line>\d+)(?<suffix>:\d+\))/, (..._args) => {
+               const { line, suffix } = _args[_args.length - 1]
+               return `(${__filename}:${Number(line) + 1}${suffix}`
+            })
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Trace\n' + stack)
          })
 
          it('should append trace stack to arguments', function () {
-            logger.trace('Hello, world!')
+            // Make sure calling points are same variable length
+            const E = Error
+            const L = logger
+            const trace = {}
+            E.captureStackTrace(trace)
+            L.trace('Hello, world!')
 
-            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Hello, world!' + 'Trace')
+            // Remove header from default stack trace and increment line number of first match of this file
+            const stack = /** @type {string} */(trace.stack).split('\n').slice(1).join('\n').replace(__filename, '__THIS_FILE__').replace(/(?<file>\(__THIS_FILE__):(?<line>\d+)(?<suffix>:\d+\))/, (..._args) => {
+               const { line, suffix } = _args[_args.length - 1]
+               return `(${__filename}:${Number(line) + 1}${suffix}`
+            })
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: LogSeverity.DEFAULT }), 'Hello, world! \n' + stack)
          })
       })
    })

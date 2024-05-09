@@ -210,6 +210,14 @@ class StructuredLogger {
       return true
    }
 
+   /** @param {any[]} args */
+   trace(...args) {
+      const now = new Date()
+      const trace = { name: args.length === 0 ? 'Trace' : '' }
+      Error.captureStackTrace(trace, this.trace)
+      this._writeFormatted('DEFAULT', [...args, trace.stack], now)
+   }
+
    /**
     * @private
     * @param {bigint} ns
