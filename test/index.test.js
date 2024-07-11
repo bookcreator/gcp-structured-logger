@@ -1,3 +1,4 @@
+/* eslint-disable n/global-require */
 const { Writable, finished: finishedCb } = require('stream')
 const { assert } = require('chai')
 const { createSandbox, match: sinonMatch } = require('sinon')
@@ -10,9 +11,11 @@ const sinon = createSandbox()
 describe('index.js', function () {
    /** @type {import('..')} */
    let logger
+
    before(function () {
       logger = require('..')
    })
+
    after(function () {
       sinon.restore()
    })
@@ -51,6 +54,7 @@ describe('index.js', function () {
             })
          })
       })
+
       it('should include provided extraLabels property', function () {
          const extraLabels = {
             label1: 'value1',
@@ -64,6 +68,7 @@ describe('index.js', function () {
          })
          assert.deepStrictEqual(l._extraLabels, extraLabels)
       })
+
       it('should add extractUser property', function () {
          const requestUserExtractor = {}
          const l = new logger.Logging({
@@ -73,6 +78,7 @@ describe('index.js', function () {
          })
          assert.strictEqual(l._extractUser, requestUserExtractor)
       })
+
       it('should have StructuredLogger logger property', function () {
          const l = new logger.Logging({
             projectId,
@@ -81,6 +87,7 @@ describe('index.js', function () {
          })
          assert.instanceOf(l.logger, require('../src/StructuredLogger').StructuredLogger)
       })
+
       it('should use serviceContext property', function () {
          const serviceContext = {
             service: 'tests',
@@ -93,6 +100,7 @@ describe('index.js', function () {
          })
          assert.deepStrictEqual(l._serviceContext, serviceContext)
       })
+
       it('logger property should reuse productionTransport', function () {
          const productionTransport = () => { }
          const l = new logger.Logging({
@@ -506,6 +514,7 @@ describe('index.js', function () {
       it('should expose object', function () {
          assert.strictEqual(logger.LogSeverity, require('../src/severity').LogSeverity)
       })
+
       it('should be readonly', function () {
          assert.isFrozen(logger.LogSeverity)
       })

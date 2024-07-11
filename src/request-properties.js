@@ -15,6 +15,7 @@ module.exports.getHeader = (req, name) => {
    if ('get' in req) {
       return req.get(name)
    } else {
+      // @ts-ignore
       return req.headers.has(name) ? req.headers.get(name) : undefined
    }
 }

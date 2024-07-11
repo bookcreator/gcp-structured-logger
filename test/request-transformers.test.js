@@ -35,6 +35,7 @@ describe('request-transformers', function () {
             requestMethod: method,
          })
       })
+
       it('should include remoteIp derived', function () {
          const req = make({
             ...base,
@@ -46,6 +47,7 @@ describe('request-transformers', function () {
             remoteIp: '127.0.0.1',
          })
       })
+
       it('should include userAgent derived from user-agent header', function () {
          const req = make({
             ...base,
@@ -59,6 +61,7 @@ describe('request-transformers', function () {
             userAgent: 'UA',
          })
       })
+
       it('should include referer derived from referrer header', function () {
          const req = make({
             ...base,
@@ -72,6 +75,7 @@ describe('request-transformers', function () {
             referer: 'https://google.com',
          })
       })
+
       it('should include requestSize derived from content-length header', function () {
          const req = make({
             ...base,
@@ -85,6 +89,7 @@ describe('request-transformers', function () {
             requestSize: 123,
          })
       })
+
       it('should include HTTP version in protocol base on the requests protocol', function () {
          const req = make({
             ...base,
@@ -96,6 +101,7 @@ describe('request-transformers', function () {
             protocol: `https/${httpVersion}`,
          })
       })
+
       it('should include status from req.res', function () {
          const req = make({
             ...base,
@@ -107,6 +113,7 @@ describe('request-transformers', function () {
             status: 200,
          })
       })
+
       it('should include responseSize from req.res', function () {
          const req = make({
             ...base,
@@ -143,6 +150,7 @@ describe('request-transformers', function () {
             method,
          })
       })
+
       it('should include remoteIp', function () {
          const req = make({
             ...base,
@@ -154,6 +162,7 @@ describe('request-transformers', function () {
             remoteIp: '127.0.0.1',
          })
       })
+
       it('should include userAgent derived from user-agent header', function () {
          const req = make({
             ...base,
@@ -167,6 +176,7 @@ describe('request-transformers', function () {
             userAgent: 'UA',
          })
       })
+
       it('should include referrer derived from referrer header', function () {
          const req = make({
             ...base,
@@ -180,6 +190,7 @@ describe('request-transformers', function () {
             referrer: 'https://google.com',
          })
       })
+
       it('should include responseStatusCode from req.res', function () {
          const req = make({
             ...base,

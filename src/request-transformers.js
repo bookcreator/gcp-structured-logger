@@ -6,12 +6,12 @@ const { getUrl, getHeader, getProtocol, getRemoteIp, getResponse } = require('./
  * Converts a request (and its attached response) to a `HttpRequest` for Stackdriver `LogEntry`.
  *
  * @param {Request} req
- * @returns {import('../').LoggingHttpRequest}
+ * @returns {import('@google-cloud/logging').HttpRequest}
  */
 function requestToHttpRequest(req) {
    // Copy from reporting
    const { url, method, responseStatusCode, referrer, ...reportingReq } = requestToErrorReportingHttpRequest(req)
-   /** @type {import('../').LoggingHttpRequest} */
+   /** @type {import('@google-cloud/logging').HttpRequest} */
    const httpReq = {
       requestUrl: url,
       requestMethod: method,
@@ -55,6 +55,7 @@ function requestToErrorReportingHttpRequest(req) {
    /** @type {HttpRequestContext} */
    const httpReq = {
       url: getUrl(req),
+      // @ts-ignore
       method: req.method,
    }
 

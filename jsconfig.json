@@ -6,14 +6,19 @@
       "lib": [
          "ES2020"
       ],
-      "noEmit": true,
-      "checkJs": true
+      "allowJs": true,
+      "checkJs": true,
+      "outDir": "./types",
+      "declaration": true,
+      "noEmit": false,
+      "emitDeclarationOnly": true
    },
    "typeAcquisition": {
       "enable": true
    },
    "include": [
       "index.js",
-      "src/**/*.js"
+      "./src/**/*.js",
+      "t.ts"
    ]
 }

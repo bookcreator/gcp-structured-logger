@@ -5,7 +5,7 @@ const getTraceContext = require('./trace-context')
 const { requestToErrorReportingHttpRequest } = require('./request-transformers')
 
 /**
- * @type {Partial<Record<keyof import('../').LogEntry, string | false>>}
+ * @type {Partial<Record<keyof import('../t').LogEntry , string | false>>}
  * `false` will not map.
  *  Missing values will just use the key name.
  *  @see https://cloud.google.com/logging/docs/agent/configuration#special-fields
@@ -39,8 +39,8 @@ class StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport?} productionTransport
+    * @param {import('../t').ServiceContext} serviceContext
+    * @param {import('../t').Transport?} productionTransport
     * @param {{ [key: string]: string }} labels
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels) {
@@ -69,7 +69,7 @@ class StructuredLogger {
    /**
     * @protected
     * @param {Request} request
-    * @param {import('../').ExtractUser?} extractUser
+    * @param {import('../t').ExtractUser?} extractUser
     */
    _requestChild(request, extractUser) {
       return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
@@ -272,7 +272,7 @@ class StructuredLogger {
 
    /**
     * @typedef {object} ReportedErrorEvent
-    * @prop {import('../').ServiceContext} serviceContext
+    * @prop {import('../t').ServiceContext} serviceContext
     * @prop {string} message
     * @prop {{ httpRequest?: import('./request-transformers').HttpRequestContext, user?: string }} context
     *
@@ -361,11 +361,11 @@ class StructuredLogger {
 
    /**
     * @protected
-    * @param {import('../').LogEntry} metadata
+    * @param {import('../t').LogEntry} metadata
     * @param {object | string} data
     */
    _write({ timestamp, ..._metadata }, data) {
-      /** @type {import('../').LogEntry} */
+      /** @type {import('../t').LogEntry} */
       const metadata = {
          timestamp,
          ..._metadata,
@@ -484,11 +484,11 @@ class StructuredRequestLogger extends StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport} productionTransport
+    * @param {import('../t').ServiceContext} serviceContext
+    * @param {import('../t').Transport} productionTransport
     * @param {{ [key: string]: string }} labels
     * @param {Request} request
-    * @param {import('../').ExtractUser?} extractUser
+    * @param {import('../t').ExtractUser?} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
       super(projectId, logName, serviceContext, productionTransport, labels)
@@ -525,7 +525,7 @@ class StructuredRequestLogger extends StructuredLogger {
    }
 
    /**
-    * @param {import('../').LogEntry} entry
+    * @param {import('../t').LogEntry} entry
     * @param {object | string} data
     */
    _write(entry, data) {
