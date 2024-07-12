@@ -1,20 +1,23 @@
 {
    "extends": [
       "eslint:recommended",
-      "plugin:node/recommended"
+      "plugin:n/recommended"
    ],
    "parserOptions": {
       "ecmaVersion": 2020,
       "sourceType": "module"
    },
+   "parser": "@typescript-eslint/parser",
+   "plugins": ["@typescript-eslint"],
    "env": {
       "node": true
    },
+   "ignorePatterns": ["node_modules/", "types/"],
    "rules": {
-      "node/global-require": "error",
-      "node/handle-callback-err": "error",
-      "node/no-path-concat": "error",
-      "node/no-new-require": "error",
+      "n/global-require": "error",
+      "n/handle-callback-err": "error",
+      "n/no-path-concat": "error",
+      "n/no-new-require": "error",
       "eqeqeq": "error",
       "no-console": "warn",
       "no-loop-func": "error",

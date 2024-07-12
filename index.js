@@ -2,9 +2,12 @@ const { finished } = require('stream')
 const { StructuredLogger } = require('./src/StructuredLogger')
 const { LogSeverity } = require('./src/severity')
 
+/** @typedef {import('@google-cloud/logging').ServiceContext} ServiceContext
+ * @export {ServiceContext} */
+
 class Logging {
 
-   /** @param {import('./').LoggingConfig} opts */
+   /** @param {import('./t').LoggingConfig} opts */
    constructor({ projectId, logName, serviceContext, requestUserExtractor, extraLabels, productionTransport }) {
       /** @readonly @private */
       this._serviceContext = Object.freeze({ ...serviceContext })
