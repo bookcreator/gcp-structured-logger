@@ -1,6 +1,6 @@
 {
   "name": "gcp-structured-logger",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "Structured logger for GCP logging",
   "main": "index.js",
   "files": [
