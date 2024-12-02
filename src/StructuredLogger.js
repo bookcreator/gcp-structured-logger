@@ -1,8 +1,9 @@
-const { format, formatWithOptions, inspect } = require('util')
+const { format, formatWithOptions, inspect, types: { isDate } } = require('util')
 const { LogSeverity, CONSOLE_SEVERITY } = require('./severity')
 const cleanupForJSON = require('./cleanup-for-json')
 const getTraceContext = require('./trace-context')
 const { requestToErrorReportingHttpRequest } = require('./request-transformers')
+const { now: nowNS, hrToTimestamp, timestampToISOString, NS_MICROSECOND, NS_MILLISECOND, NS_SECOND, NS_MINUTE, NS_HOUR } = require('./hr-time')
 
 /**
  * @type {Partial<Record<keyof import('../').LogEntry, string | false>>}
@@ -25,12 +26,6 @@ const LOG_ENTRY_MAPPING = {
    // @ts-ignore - Include this so we never overwrite the message
    message: false,
 }
-
-const NS_MICROSECOND = 1000n
-const NS_MILLISECOND = 1000n * NS_MICROSECOND
-const NS_SECOND = 1000n * NS_MILLISECOND
-const NS_MINUTE = 60n * NS_SECOND
-const NS_HOUR = 60n * NS_MINUTE
 
 /** @typedef {import('express-serve-static-core').Request | import('next/server').NextRequest} Request */
 
@@ -125,12 +120,12 @@ class StructuredLogger {
     * @param {LogSeverity} [severity] If not provided `err.severity` will be used, falling back to `LogSeverity.ERROR`
     */
    reportError(err, severity) {
-      const timestamp = new Date()
+      const timestamp = nowNS()
       if (!severity) {
          severity = LogSeverity.ERROR
          if (err && typeof err === 'object' && err.severity in LogSeverity) severity = err.severity
       }
-      const event = { eventTime: timestamp.toISOString(), ...this._makeReportableError(err) }
+      const event = { eventTime: timestamp, ...this._makeReportableError(err) }
       if (!event.context.user) delete event.context.user
       if (!event.context.user && !event.context.httpRequest) delete event.context
       if (event.message.indexOf(__filename) !== -1) {
@@ -212,7 +207,7 @@ class StructuredLogger {
 
    /** @param {any[]} args */
    trace(...args) {
-      const now = new Date()
+      const now = nowNS()
       const trace = { name: args.length === 0 ? 'Trace' : '' }
       Error.captureStackTrace(trace, this.trace)
       this._writeFormatted('DEBUG', [...args, trace.stack], now)
@@ -319,9 +314,9 @@ class StructuredLogger {
     * @private
     * @param {LogSeverity} severity
     * @param {any[]} args
-    * @param {Date} [timestamp]
+    * @param {bigint} [timestamp]
     */
-   _writeFormatted(severity, args, timestamp = new Date()) {
+   _writeFormatted(severity, args, timestamp = nowNS()) {
       let data
       const [message, ...a] = args
       if (a.length === 0) {
@@ -372,10 +367,8 @@ class StructuredLogger {
          labels: Object.assign({}, this._labels, _metadata.labels)
       }
       if (data && typeof data === 'object' && 'eventTime' in data) {
-         // ErrorMessage
-         const eventTime = new Date(data.eventTime)
          // Use the error event timestamp instead (as long as its valid)
-         if (!isNaN(eventTime.getTime())) metadata.timestamp = eventTime
+         if (typeof data.eventTime === 'bigint') metadata.timestamp = data.eventTime
       }
 
       if (!(metadata.severity in LogSeverity)) {
@@ -383,7 +376,6 @@ class StructuredLogger {
          metadata.severity = LogSeverity.DEFAULT
       }
 
-      // @ts-expect-error: message not returned
       const { message, ...messageData } = (() => {
          if (typeof data === 'object' && data) {
             return data
@@ -399,14 +391,8 @@ class StructuredLogger {
          /* c8 ignore stop */
       })()
 
+      const timestampNS = hrToTimestamp(metadata.timestamp)
       if (process.env.NODE_ENV === 'production') {
-         // See https://cloud.google.com/logging/docs/agent/configuration#timestamp-processing
-         const timestamp = (() => {
-            const ms = metadata.timestamp.getTime()
-            const seconds = Math.floor(ms / 1000)
-            const nanos = (ms - (seconds * 1000)) * 1e6
-            return { seconds, nanos }
-         })()
 
          if (typeof this._productionTransport === 'function') {
             // Remove timestamp as we add this directly into entry later
@@ -422,7 +408,7 @@ class StructuredLogger {
             }
             const entry = {
                ...metadata,
-               timestamp,
+               timestamp: timestampNS,
                logName: this._logName,
             }
             /** @type {string | { message?: string, [k: string]: any }} */
@@ -441,7 +427,7 @@ class StructuredLogger {
             // See https://cloud.google.com/run/docs/logging#container-logs
             const entry = {
                message,
-               timestamp
+               timestamp: timestampNS
             }
             for (const key in metadata) {
                // Check if we should add the key to a structured log
@@ -463,7 +449,7 @@ class StructuredLogger {
             fn(JSON.stringify(cleanupForJSON(entry)))
          }
       } else {
-         let prefix = metadata.timestamp.toISOString()
+         let prefix = timestampToISOString(timestampNS, 3)
          if (metadata.trace) prefix += ' / ' + metadata.trace.replace(/.+\//, '')
          /** @type {any[]} */
          const args = []
@@ -550,4 +536,4 @@ class StructuredRequestLogger extends StructuredLogger {
  */
 const reportErrorMatcher = new RegExp(`^\\s*at\\s+(?:.+?\\.)?(?:${StructuredLogger.prototype.reportError.name}|${StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
 
-module.exports = { StructuredLogger, StructuredRequestLogger }
+module.exports = { StructuredLogger, StructuredRequestLogger, nowNS }

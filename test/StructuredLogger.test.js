@@ -183,7 +183,7 @@ describe('StructuredLogger', function () {
                   const message = 'Hello'
                   logger[m](message)
 
-                  sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity, timestamp: sinonMatch.date }), message)
+                  sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity, timestamp: sinonMatch.typeOf('bigint') }), message)
                })
 
                it(`should output to console.${consoleFn.name}`, function () {
@@ -209,7 +209,7 @@ describe('StructuredLogger', function () {
                const message = 'Hello'
                logger.timeLog(LABEL, message)
 
-               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.date }), sinonMatch(new RegExp(`^${LABEL}: \\d+?\\.\\d{3}(m|µ|n)?s ${message}$`)))
+               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.typeOf('bigint') }), sinonMatch(new RegExp(`^${LABEL}: \\d+?\\.\\d{3}(m|µ|n)?s ${message}$`)))
             })
 
             it(`should output to console.log`, function () {
@@ -227,15 +227,12 @@ describe('StructuredLogger', function () {
             it('should output valid JSON object', function () {
                process.env.NODE_ENV = 'production'
 
-               const timestamp = {
-                  seconds: 1595578749,
-                  nanos: 576000000
-               }
+               const { BOOT_NS, hrToTimestamp } = require('../src/hr-time')
                const timestampMS = 1595578749576
                fakeTimers = sinon.useFakeTimers({
-                  now: timestampMS,
-                  toFake: ['Date']
+                  toFake: ['hrtime']
                })
+               fakeTimers.tick(timestampMS)
 
                const circular = { blah: 1 }
                circular.circular = circular
@@ -279,7 +276,7 @@ describe('StructuredLogger', function () {
                   'logging.googleapis.com/labels': {
                      log_name: logName
                   },
-                  timestamp
+                  timestamp: hrToTimestamp(BOOT_NS + process.hrtime.bigint()),
                })
             })
 
@@ -365,7 +362,7 @@ describe('StructuredLogger', function () {
 
                logger.log(data)
 
-               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity, timestamp })).lastCall.lastArg, data)
+               assert.deepStrictEqual(writeSpy.withArgs(sinonMatch({ severity, timestamp: sinonMatch.typeOf('bigint') })).lastCall.lastArg, data)
             })
 
             it('should use first argument as message and spread second Array arg', function () {
@@ -422,7 +419,7 @@ describe('StructuredLogger', function () {
                it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
                   const severity = LogSeverity.DEFAULT
 
-                  logger._write({ timestamp: new Date() }, '')
+                  logger._write({ timestamp: 0n }, '')
 
                   assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), { severity })
                })
@@ -464,28 +461,28 @@ describe('StructuredLogger', function () {
 
                it('should include serialised timestamp', function () {
                   const severity = LogSeverity.DEBUG
-                  const timestamp = new Date(1617182524522)
+                  const timestamp = 1617182524522000000n
 
                   logger._write({ timestamp, severity }, '')
 
-                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522e6 }, severity }), {})
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522000000 }, severity }), {})
                })
 
                it('should include logName', function () {
                   const severity = LogSeverity.DEBUG
-                  const timestamp = new Date(1617182524522)
+                  const timestamp = 1617182524522000000n
                   const labels = { hello: 'world' }
 
                   logger._write({ timestamp, severity, labels }, '')
 
-                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522e6 }, severity, logName }), {})
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ timestamp: { seconds: 1617182524, nanos: 522000000 }, severity, logName }), {})
                   assert.deepPropertyVal(productionTransport.firstCall.firstArg, 'labels', labels)
                })
 
                it('should fallback to LogSeverity.DEFAULT if invalid severity is provided', function () {
                   const severity = LogSeverity.DEFAULT
 
-                  logger._write({ timestamp: new Date() }, '')
+                  logger._write({ timestamp: 0n }, '')
 
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity }), {})
                })
@@ -493,7 +490,7 @@ describe('StructuredLogger', function () {
                it('should use message as data parameter', function () {
                   const message = 'message'
 
-                  logger._write({ timestamp: new Date() }, message)
+                  logger._write({ timestamp: 0n }, message)
 
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), message)
                })
@@ -505,7 +502,7 @@ describe('StructuredLogger', function () {
                   }
                   const labels = { thing: 'blah' }
 
-                  logger._write({ timestamp: new Date(), labels }, data)
+                  logger._write({ timestamp: 0n, labels }, data)
 
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT, labels }), data)
                })
@@ -517,7 +514,7 @@ describe('StructuredLogger', function () {
                   }
                   const textPayload = 'blah'
 
-                  logger._write({ timestamp: new Date(), textPayload }, data)
+                  logger._write({ timestamp: 0n, textPayload }, data)
 
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), { ...data, textPayload })
                })
@@ -528,7 +525,7 @@ describe('StructuredLogger', function () {
                      severity__: LogSeverity.WARNING,
                   }
 
-                  logger._write({ timestamp: new Date(), message: 'blah' }, data)
+                  logger._write({ timestamp: 0n, message: 'blah' }, data)
 
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), {
                      message: 'message',
@@ -591,17 +588,17 @@ describe('StructuredLogger', function () {
          })
 
          it('should include eventTime', function () {
-            const timestamp = new Date()
+            const { BOOT_NS } = require('../src/hr-time')
             fakeTimers = sinon.useFakeTimers({
-               now: timestamp,
-               toFake: ['Date']
+               toFake: ['hrtime']
             })
+            fakeTimers.tick(Date.now())
 
             logger.reportError('Error string')
 
             const data = writeSpy.lastCall.lastArg
 
-            assert.strictEqual(data.eventTime, timestamp.toISOString())
+            assert.deepStrictEqual(data.eventTime, BOOT_NS + fakeTimers.hrtime.bigint())
          })
 
          it('should generate stack trace', function () {
@@ -848,7 +845,7 @@ describe('StructuredLogger', function () {
                logger.time(LABEL)
                logger.timeEnd(LABEL)
 
-               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.date }), sinonMatch(new RegExp(`^${LABEL}: \\d+?(\\.\\d{3}[mµ]?|n)s$`)))
+               sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch({ severity: 'DEFAULT', timestamp: sinonMatch.typeOf('bigint') }), sinonMatch(new RegExp(`^${LABEL}: \\d+?(\\.\\d{3}[mµ]?|n)s$`)))
             })
 
             it('should remove time label', function () {
@@ -1036,11 +1033,11 @@ describe('StructuredLogger', function () {
       describe('#reportError', function () {
 
          it('should include eventTime', function () {
-            const timestamp = new Date()
+            const { BOOT_NS } = require('../src/hr-time')
             fakeTimers = sinon.useFakeTimers({
-               now: timestamp,
-               toFake: ['Date']
+               toFake: ['hrtime']
             })
+            fakeTimers.tick(Date.now())
 
             const log = logger._requestChild(make())
 
@@ -1050,7 +1047,7 @@ describe('StructuredLogger', function () {
 
             const data = writeSpy.lastCall.lastArg
 
-            assert.strictEqual(data.eventTime, timestamp.toISOString())
+            assert.deepStrictEqual(data.eventTime, BOOT_NS + fakeTimers.hrtime.bigint())
          })
 
          it('should generate stack trace', function () {

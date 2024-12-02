@@ -21,7 +21,7 @@ export interface LoggingHttpRequest {
 }
 /** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry */
 export interface LogEntry {
-   timestamp: Date;
+   timestamp: bigint;
    severity: LogSeverity;
    insertId?: string;
    httpRequest?: LoggingHttpRequest;

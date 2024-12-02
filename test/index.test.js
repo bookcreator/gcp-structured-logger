@@ -424,7 +424,7 @@ describe('index.js', function () {
             unhandledRejectionHandler(reason)
 
             // Check we've logged error
-            sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.WARNING })), sinonMatch({ timestamp: sinonMatch.date }), sinonMatch({ message: sinonMatch(reason) }))
+            sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.WARNING })), sinonMatch({ timestamp: sinonMatch.typeOf('bigint') }), sinonMatch({ message: sinonMatch(reason) }))
          })
 
          it('should report unhandledExceptions to logger', function () {
@@ -443,7 +443,7 @@ describe('index.js', function () {
             uncaughtExceptionHandler(error)
 
             // Check we've logged error
-            sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.ERROR })), sinonMatch({ timestamp: sinonMatch.date }), sinonMatch({ message: sinonMatch(error.message) }))
+            sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.ERROR })), sinonMatch({ timestamp: sinonMatch.typeOf('bigint') }), sinonMatch({ message: sinonMatch(error.message) }))
          })
       })
 
