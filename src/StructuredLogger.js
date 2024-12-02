@@ -1,4 +1,4 @@
-const { format, formatWithOptions, inspect, types: { isDate } } = require('util')
+const { format, formatWithOptions, inspect } = require('util')
 const { LogSeverity, CONSOLE_SEVERITY } = require('./severity')
 const cleanupForJSON = require('./cleanup-for-json')
 const getTraceContext = require('./trace-context')
