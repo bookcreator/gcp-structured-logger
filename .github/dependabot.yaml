@@ -7,6 +7,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    allow:
+      - dependency-type: production
     # Update the npm manifest file to relax the version requirements
     versioning-strategy: widen
 
