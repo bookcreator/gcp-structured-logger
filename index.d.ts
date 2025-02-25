@@ -20,6 +20,12 @@ export interface LoggingHttpRequest {
    responseSize?: number;
    latency?: { seconds: number, nanos?: number };
 }
+export interface TraceContext {
+   /** Format `projects/<PROJECT-ID>/traces/<TRACE-ID>`. */
+   trace: string;
+   spanId: string;
+   traceSampled: boolean;
+}
 /** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry */
 export interface LogEntry {
    timestamp: bigint;

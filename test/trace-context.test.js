@@ -16,19 +16,19 @@ describe('trace-context', function () {
       })
 
       it('should ignore requests without trace header', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq()), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq()))
       })
 
       it('should ignore requests with invalid trace header', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq('blah')), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq('blah')))
       })
 
       it('should ignore requests with invalid trace header - null trace ID', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq('00-00000000000000000000000000000000-0000000000000001-00')), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq('00-00000000000000000000000000000000-0000000000000001-00')))
       })
 
       it('should ignore requests with invalid trace header - null span ID', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq('00-00000000000000000000000000000001-0000000000000000-00')), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq('00-00000000000000000000000000000001-0000000000000000-00')))
       })
 
       it('should extract context for requests with trace header', function () {
@@ -75,19 +75,19 @@ describe('trace-context', function () {
       })
 
       it('should ignore requests without trace header', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq()), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq()))
       })
 
       it('should ignore requests with invalid trace header', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq('blah')), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq('blah')))
       })
 
       it('should ignore requests with invalid trace header - null trace ID', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq('00000000000000000000000000000000/1;o=1')), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq('00000000000000000000000000000000/1;o=1')))
       })
 
       it('should ignore requests with invalid trace header - null span ID', function () {
-         assert.deepStrictEqual(extractTraceContext(PROJECT_ID, makeReq('00000000000000000000000000000001/0')), {})
+         assert.isUndefined(extractTraceContext(PROJECT_ID, makeReq('00000000000000000000000000000001/0')))
       })
 
       it('should extract context for requests with trace header', function () {

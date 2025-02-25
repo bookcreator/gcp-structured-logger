@@ -483,7 +483,7 @@ class StructuredRequestLogger extends StructuredLogger {
       /** @readonly @private */
       this._extractUser = extractUser
       /** @readonly @private */
-      this._trace = extractTraceContext(projectId, request)
+      this._trace = extractTraceContext(projectId, request) ?? {}
    }
 
    /**

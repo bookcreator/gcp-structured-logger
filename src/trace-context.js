@@ -12,10 +12,9 @@ const TRACE_PARENT_FLAGS = {
 }
 
 /**
- * @typedef {{ trace: string, spanId: string, traceSampled: boolean }} TraceContext
  * @param {string} projectId
  * @param {import('./StructuredLogger').Request} req
- * @returns {{} | TraceContext}
+ * @returns {import('../').TraceContext | undefined}
  */
 function extractTraceContext(projectId, req) {
    /** @type {string | undefined} */
@@ -41,7 +40,7 @@ function extractTraceContext(projectId, req) {
       spanId = BigInt(spanId)
    } catch {
       // Can ignore - invalid values
-      return {}
+      return
    }
    return { trace: `projects/${projectId}/traces/${traceId}`, spanId: spanId.toString(16).padStart(16, '0'), traceSampled: Boolean(flagsValue & TRACE_PARENT_FLAGS.sampled) }
 }
