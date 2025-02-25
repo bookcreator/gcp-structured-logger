@@ -381,18 +381,18 @@ describe('index.js', function () {
 
             sinon.assert.calledTwice(processOnSpy)
             sinon.assert.calledWithExactly(processOnSpy, 'unhandledRejection', sinonMatch.func)
-            sinon.assert.calledWith(processOnSpy, sinonMatch('uncaughtException').or(sinonMatch('uncaughtExceptionMonitor')), sinonMatch.func)
+            sinon.assert.calledWith(processOnSpy, sinonMatch('uncaughtExceptionMonitor'), sinonMatch.func)
 
 
             const unhandledRejectionHandler = processOnSpy.withArgs('unhandledRejection').firstCall.lastArg
-            const uncaughtExceptionHandler = processOnSpy.withArgs(sinonMatch('uncaughtException').or(sinonMatch('uncaughtExceptionMonitor'))).firstCall.lastArg
+            const uncaughtExceptionHandler = processOnSpy.withArgs(sinonMatch('uncaughtExceptionMonitor')).firstCall.lastArg
 
             // Ensure they're different handlers
             assert.notStrictEqual(unhandledRejectionHandler, uncaughtExceptionHandler)
             // Ensure we've not removed them
             sinon.assert.notCalled(processOffSpy)
             assert.include(process.listeners('unhandledRejection'), unhandledRejectionHandler)
-            assert.include([...process.listeners('uncaughtException'), ...process.listeners('uncaughtExceptionMonitor')], uncaughtExceptionHandler)
+            assert.include(process.listeners('uncaughtExceptionMonitor'), uncaughtExceptionHandler)
          })
 
          it('should detach from process', function () {
@@ -404,15 +404,15 @@ describe('index.js', function () {
             l.attachToProcess(l.logger)()
 
             const unhandledRejectionHandler = processOnSpy.withArgs('unhandledRejection').firstCall.lastArg
-            const uncaughtExceptionHandler = processOnSpy.withArgs(sinonMatch('uncaughtException').or(sinonMatch('uncaughtExceptionMonitor'))).firstCall.lastArg
+            const uncaughtExceptionHandler = processOnSpy.withArgs(sinonMatch('uncaughtExceptionMonitor')).firstCall.lastArg
 
             sinon.assert.calledTwice(processOffSpy)
             sinon.assert.calledWithExactly(processOffSpy, 'unhandledRejection', unhandledRejectionHandler)
-            sinon.assert.calledWith(processOffSpy, sinonMatch('uncaughtException').or(sinonMatch('uncaughtExceptionMonitor')), uncaughtExceptionHandler)
+            sinon.assert.calledWith(processOffSpy, sinonMatch('uncaughtExceptionMonitor'), uncaughtExceptionHandler)
 
             // Ensure we've removed them
             assert.notInclude(process.listeners('unhandledRejection'), unhandledRejectionHandler)
-            assert.notInclude([...process.listeners('uncaughtException'), ...process.listeners('uncaughtExceptionMonitor')], uncaughtExceptionHandler)
+            assert.notInclude(process.listeners('uncaughtExceptionMonitor'), uncaughtExceptionHandler)
          })
 
          it('should report unhandledRejections to logger', function () {
@@ -444,7 +444,7 @@ describe('index.js', function () {
 
             const writeSpy = sinon.spy(l.logger, '_write')
 
-            const uncaughtExceptionHandler = processOnSpy.withArgs(sinonMatch('uncaughtException').or(sinonMatch('uncaughtExceptionMonitor'))).firstCall.lastArg
+            const uncaughtExceptionHandler = processOnSpy.withArgs(sinonMatch('uncaughtExceptionMonitor')).firstCall.lastArg
 
             const error = new Error('Some error')
             uncaughtExceptionHandler(error)
@@ -452,60 +452,6 @@ describe('index.js', function () {
             // Check we've logged error
             sinon.assert.calledWithExactly(writeSpy.withArgs(sinonMatch({ severity: logger.LogSeverity.ERROR })), sinonMatch({ timestamp: sinonMatch.typeOf('bigint') }), sinonMatch({ message: sinonMatch(error.message) }))
          })
-      })
-
-      describe('_resolveUncaughtExceptionType', function () {
-
-         const fallbackValues = [
-            null,
-            false,
-            '',
-            'v',
-            '1',
-            'blah',
-            '12',
-            '14'
-         ]
-         for (const v of fallbackValues) {
-            it(`should fallback to 'uncaughtException' for invalid value '${v}'`, function () {
-               assert.strictEqual(logger.Logging._resolveUncaughtExceptionType(v), 'uncaughtException')
-            })
-         }
-
-         const uncaughtExceptionValues = [
-            '8.20.0',
-            '10.21.0',
-            '11.22.0',
-            '12.16.99',
-            '13.6.99'
-         ]
-         for (const _v of uncaughtExceptionValues) {
-            for (const v of [_v, 'v' + _v]) {
-               it(`should use 'uncaughtException' for unsupported version '${v}'`, function () {
-                  assert.strictEqual(logger.Logging._resolveUncaughtExceptionType(v), 'uncaughtException')
-               })
-            }
-         }
-
-         const uncaughtExceptionMonitorValues = [
-            '12.17',
-            '12.17.0',
-            '12.17.1',
-            '12.18.0',
-            '13.7',
-            '13.7.0',
-            '13.7.1',
-            '13.8.0',
-            '14.0.0',
-            '16.0.0',
-         ]
-         for (const _v of uncaughtExceptionMonitorValues) {
-            for (const v of [_v, 'v' + _v]) {
-               it(`should use 'uncaughtExceptionMonitor' for supported version '${v}'`, function () {
-                  assert.strictEqual(logger.Logging._resolveUncaughtExceptionType(v), 'uncaughtExceptionMonitor')
-               })
-            }
-         }
       })
    })
 
