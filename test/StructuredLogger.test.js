@@ -877,7 +877,7 @@ describe('StructuredLogger', function () {
                logger.time(LABEL)
                logger.timeLog(LABEL, ...args)
 
-               assert.match(writeSpy.withArgs(sinonMatch({ severity: 'DEFAULT' })).lastCall.lastArg, /^LABEL: \d+?\.\d{3}(m|µ|n)?s hello world \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z 1 false true 0 1\.2 \/b\\\\o\\n\(o\\\)\)\/gi undefined null 123432432432423432423$/)
+               assert.match(writeSpy.withArgs(sinonMatch({ severity: 'DEFAULT' })).lastCall.lastArg, /^LABEL: (\d{3}ns|\d+?\.\d{3}(m|µ)?s) hello world \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z 1 false true 0 1\.2 \/b\\\\o\\n\(o\\\)\)\/gi undefined null 123432432432423432423$/)
             })
          })
 
