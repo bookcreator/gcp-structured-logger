@@ -1,7 +1,7 @@
 const { format, formatWithOptions, inspect } = require('util')
 const { LogSeverity, CONSOLE_SEVERITY } = require('./severity')
 const cleanupForJSON = require('./cleanup-for-json')
-const getTraceContext = require('./trace-context')
+const { extractTraceContext } = require('./trace-context')
 const { requestToErrorReportingHttpRequest } = require('./request-transformers')
 const { now: nowNS, hrToTimestamp, timestampToISOString, NS_MICROSECOND, NS_MILLISECOND, NS_SECOND, NS_MINUTE, NS_HOUR } = require('./hr-time')
 
@@ -483,7 +483,7 @@ class StructuredRequestLogger extends StructuredLogger {
       /** @readonly @private */
       this._extractUser = extractUser
       /** @readonly @private */
-      this._trace = getTraceContext(projectId, request)
+      this._trace = extractTraceContext(projectId, request)
    }
 
    /**
