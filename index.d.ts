@@ -4,6 +4,7 @@ import { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-stat
 import { LogSeverity } from "./src/severity";
 import { StructuredLogger, StructuredRequestLogger } from './src/StructuredLogger';
 import { requestToHttpRequest } from "./src/request-transformers";
+import { extractTraceContext } from "./src/trace-context";
 import { NextRequest as _NextRequest } from 'next/server'
 
 /** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#httprequest */
@@ -91,4 +92,4 @@ declare global {
    }
 }
 
-export { requestToHttpRequest, LogSeverity };
+export { requestToHttpRequest, extractTraceContext, LogSeverity };

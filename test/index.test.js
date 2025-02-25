@@ -524,4 +524,10 @@ describe('index.js', function () {
          assert.strictEqual(logger.requestToHttpRequest, require('../src/request-transformers').requestToHttpRequest)
       })
    })
+
+   describe('extractTraceContext', function () {
+      it('should expose function', function () {
+         assert.strictEqual(logger.extractTraceContext, require('../src/trace-context').extractTraceContext)
+      })
+   })
 })

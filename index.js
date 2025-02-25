@@ -104,9 +104,11 @@ class Logging {
 }
 
 const { requestToHttpRequest } = require('./src/request-transformers')
+const { extractTraceContext } = require('./src/trace-context')
 
 module.exports = {
    Logging,
    LogSeverity,
    requestToHttpRequest,
+   extractTraceContext,
 }
