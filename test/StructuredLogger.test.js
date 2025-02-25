@@ -21,15 +21,19 @@ describe('StructuredLogger', function () {
    let NODE_ENV
    /** @type {sinon.SinonFakeTimers} */
    let fakeTimers
+
    before(function () {
       loggers = require('../src/StructuredLogger')
    })
+
    after(function () {
       sinon.restore()
    })
+
    beforeEach(function () {
       ({ NODE_ENV } = process.env)
    })
+
    afterEach(function () {
       if (NODE_ENV === undefined) {
          delete process.env.NODE_ENV
@@ -162,10 +166,12 @@ describe('StructuredLogger', function () {
       let logger
       /** @type {sinon.SinonSpy} */
       let writeSpy
+
       before(function () {
          logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
          writeSpy = sinon.spy(logger, '_write')
       })
+
       beforeEach(function () {
          writeSpy.resetHistory()
          logger._times.clear()
@@ -200,6 +206,7 @@ describe('StructuredLogger', function () {
 
             /** @type {bigint} */
             let start
+
             beforeEach(function () {
                start = process.hrtime.bigint()
                logger._times.set(LABEL, start)
