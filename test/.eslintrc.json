@@ -5,7 +5,7 @@
    ],
    "rules": {
       "mocha/no-setup-in-describe": "off",
-      "node/global-require": "off",
+      "n/global-require": "off",
       "no-loop-func": "off",
       "no-unused-vars": "off"
    }
