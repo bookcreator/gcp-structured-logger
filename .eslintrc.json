@@ -4,7 +4,7 @@
       "plugin:n/recommended"
    ],
    "parserOptions": {
-      "ecmaVersion": 2020,
+      "ecmaVersion": 2023,
       "sourceType": "module"
    },
    "env": {

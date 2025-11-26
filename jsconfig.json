@@ -2,10 +2,7 @@
    "compilerOptions": {
       "module": "CommonJS",
       "moduleResolution": "Node",
-      "target": "ES2020",
-      "lib": [
-         "ES2020"
-      ],
+      "target": "ES2023",
       "noEmit": true,
       "checkJs": true
    },
