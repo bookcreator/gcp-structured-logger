@@ -63,10 +63,10 @@ class StructuredLogger {
 
    /**
     * @package
-    * @param {{ traceId: string, spanId?: string, notSampled?: boolean }} trace
+    * @param {{ traceId: string, spanId?: string, sampled?: boolean }} trace
     */
-   _traced({ traceId, spanId, notSampled = false }) {
-      return this._tracedChild({ trace: `projects/${this._projectId}/traces/${traceId}`, spanId, traceSampled: !notSampled })
+   _traced({ traceId, spanId, sampled }) {
+      return this._tracedChild({ trace: `projects/${this._projectId}/traces/${traceId}`, spanId, traceSampled: sampled })
    }
 
    /**

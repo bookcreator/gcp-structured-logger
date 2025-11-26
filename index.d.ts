@@ -74,7 +74,7 @@ export interface LoggingConfig {
 export class Logging {
    constructor(config: LoggingConfig);
    readonly logger: StructuredLogger;
-   makeTracedLogger(trace: { traceId: string, spanId?: string, notSampled?: boolean }): StructuredTracedLogger;
+   makeTracedLogger(trace: { traceId: string, spanId?: string, sampled?: boolean }): StructuredTracedLogger;
    makeLoggingMiddleware(): RequestHandler;
    /** This should be attached after adding the result of `makeLoggingMiddleware`. */
    makeErrorMiddleware(): ErrorRequestHandler;

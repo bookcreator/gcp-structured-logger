@@ -993,27 +993,27 @@ describe('StructuredLogger', function () {
          const t = logger._traced({ traceId, spanId })
 
          assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
-         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: true })
+         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: undefined })
       })
 
       it('should return StructuredTracedLogger with sampling disabled', function () {
          const traceId = 'trace-id'
          const spanId = 'span-id'
-         const notSampled = false
-         const t = logger._traced({ traceId, spanId, notSampled })
+         const traceSampled = false
+         const t = logger._traced({ traceId, spanId, sampled: traceSampled })
 
          assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
-         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: true })
+         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled })
       })
 
       it('should return StructuredTracedLogger with sampling enabled', function () {
          const traceId = 'trace-id'
          const spanId = 'span-id'
-         const notSampled = true
-         const t = logger._traced({ traceId, spanId, notSampled })
+         const traceSampled = true
+         const t = logger._traced({ traceId, spanId, sampled: traceSampled })
 
          assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
-         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: false })
+         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled })
       })
 
       it('should include trace (NODE_ENV!=production)', function () {
@@ -1033,7 +1033,27 @@ describe('StructuredLogger', function () {
 
          const traceId = '59973d340da5c40f77349df948ef7531'
          const spanId = '288377245651'
-         const log = logger._traced({ traceId, spanId, notSampled: true })
+         const log = logger._traced({ traceId, spanId })
+
+         const method = 'log'
+         const severity = methods[method]
+         const consoleFn = require('../src/severity').CONSOLE_SEVERITY[severity]
+         log[method]('Some message')
+
+         const p = JSON.parse(consoleFn.lastCall.lastArg)
+         assert.deepInclude(p, {
+            'logging.googleapis.com/trace': `projects/${projectId}/traces/${traceId}`,
+            'logging.googleapis.com/spanId': spanId,
+         })
+         assert.notProperty(p, 'logging.googleapis.com/trace_sampled')
+      })
+
+      it('should include trace with sampling for request (NODE_ENV=production)', function () {
+         process.env.NODE_ENV = 'production'
+
+         const traceId = '59973d340da5c40f77349df948ef7531'
+         const spanId = '288377245651'
+         const log = logger._traced({ traceId, spanId, sampled: true })
 
          const method = 'log'
          const severity = methods[method]
@@ -1043,7 +1063,7 @@ describe('StructuredLogger', function () {
          assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), {
             'logging.googleapis.com/trace': `projects/${projectId}/traces/${traceId}`,
             'logging.googleapis.com/spanId': spanId,
-            'logging.googleapis.com/trace_sampled': false,
+            'logging.googleapis.com/trace_sampled': true,
          })
       })
 
@@ -1061,7 +1081,7 @@ describe('StructuredLogger', function () {
             assert.propertyVal(l, '_logName', logName)
             assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
             assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'CHILD' })
-            assert.deepPropertyVal(l, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: true })
+            assert.deepPropertyVal(l, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: undefined })
          })
 
          it('should use parents trace', function () {

@@ -17,7 +17,7 @@ class Logging {
    }
 
    /**
-    * @param {{ traceId: string, spanId?: string, notSampled?: boolean }} trace
+    * @param {{ traceId: string, spanId?: string, sampled?: boolean }} trace
     */
    makeTracedLogger(trace) {
       return this.logger._traced(trace)
