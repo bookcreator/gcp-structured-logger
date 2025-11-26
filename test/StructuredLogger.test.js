@@ -123,6 +123,21 @@ describe('StructuredLogger', function () {
       assert.deepPropertyVal(l, '_labels', { log_name: logName, ...labels, type })
    })
 
+   it('should create traced logger', function () {
+      const productionTransport = () => { }
+      const trace = {}
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)._tracedChild(trace)
+
+      assert.instanceOf(l, loggers.StructuredTracedLogger)
+      assert.propertyVal(l, '_projectId', projectId)
+      assert.propertyVal(l, '_logName', logName)
+      assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
+      assert.propertyVal(l, '_productionTransport', productionTransport)
+      assert.deepPropertyVal(l, '_labels', { log_name: logName })
+      // StructuredTracedLogger
+      assert.propertyVal(l, '_trace', trace)
+   })
+
    it('should create request logger', function () {
       const productionTransport = () => { }
       const req = make()
@@ -964,7 +979,7 @@ describe('StructuredLogger', function () {
       })
    })
 
-   context('StructuredRequestLogger', function () {
+   context('StructuredTracedLogger', function () {
 
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger
@@ -972,12 +987,38 @@ describe('StructuredLogger', function () {
          logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
       })
 
-      it('should include trace for request (NODE_ENV!=production)', function () {
-         const traceId = '59973d340da5c40f77349df948ef7531'
-         const spanId = 288377245651
+      it('should return StructuredTracedLogger with no sampling specified', function () {
+         const traceId = 'trace-id'
+         const spanId = 'span-id'
+         const t = logger._traced({ traceId, spanId })
 
-         const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
-         const log = logger._requestChild(req)
+         assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
+         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: true })
+      })
+
+      it('should return StructuredTracedLogger with sampling disabled', function () {
+         const traceId = 'trace-id'
+         const spanId = 'span-id'
+         const notSampled = false
+         const t = logger._traced({ traceId, spanId, notSampled })
+
+         assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
+         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: true })
+      })
+
+      it('should return StructuredTracedLogger with sampling enabled', function () {
+         const traceId = 'trace-id'
+         const spanId = 'span-id'
+         const notSampled = true
+         const t = logger._traced({ traceId, spanId, notSampled })
+
+         assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
+         assert.deepPropertyVal(t, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: false })
+      })
+
+      it('should include trace (NODE_ENV!=production)', function () {
+         const traceId = '59973d340da5c40f77349df948ef7531'
+         const log = logger._traced({ traceId })
 
          const method = 'log'
          const severity = methods[method]
@@ -991,10 +1032,8 @@ describe('StructuredLogger', function () {
          process.env.NODE_ENV = 'production'
 
          const traceId = '59973d340da5c40f77349df948ef7531'
-         const spanId = 288377245651
-
-         const req = make({ headers: { 'x-cloud-trace-context': `${traceId}/${spanId}` } })
-         const log = logger._requestChild(req)
+         const spanId = '288377245651'
+         const log = logger._traced({ traceId, spanId, notSampled: true })
 
          const method = 'log'
          const severity = methods[method]
@@ -1002,8 +1041,91 @@ describe('StructuredLogger', function () {
          log[method]('Some message')
 
          assert.deepInclude(JSON.parse(consoleFn.lastCall.lastArg), {
-            'logging.googleapis.com/trace': `projects/${projectId}/traces/${traceId}`
+            'logging.googleapis.com/trace': `projects/${projectId}/traces/${traceId}`,
+            'logging.googleapis.com/spanId': spanId,
+            'logging.googleapis.com/trace_sampled': false,
          })
+      })
+
+      describe('#child', function () {
+
+         it('should return instance of StructuredTracedLogger', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const spanId = '288377245651'
+            const log = logger._traced({ traceId, spanId })
+
+            const l = log.child('CHILD')
+
+            assert.instanceOf(l, loggers.StructuredTracedLogger)
+            assert.propertyVal(l, '_projectId', projectId)
+            assert.propertyVal(l, '_logName', logName)
+            assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
+            assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'CHILD' })
+            assert.deepPropertyVal(l, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId, traceSampled: true })
+         })
+
+         it('should use parents trace', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const spanId = '288377245651'
+            const log = logger._traced({ traceId, spanId })
+
+            const l = log.child('CHILD')
+
+            assert.deepPropertyVal(l, '_trace', log._trace)
+         })
+      })
+
+      describe('#reportError', function () {
+
+         it('should generate stack trace', function () {
+            const traceId = 'trace-id'
+            const log = logger._traced({ traceId })
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const errorMessage = 'Error string'
+            const obj = new Error(errorMessage)
+            log.reportError(errorMessage)
+
+            // Remove second line of stack as it'll be the line above we expect
+            const expectedStack = obj.stack.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            const data = writeSpy.lastCall.lastArg
+
+            const actualMessage = data.message.split('\n')[0]
+            const actualCallSite = data.message.split('\n')[1]
+            // Remove second line of stack as it'll be the line below we expect
+            const actualStack = data.message.split('\n').filter((_, idx) => idx > 1).join('\n')
+
+            assert.strictEqual(actualMessage, errorMessage)
+            assert.include(actualCallSite, ` (${__filename}:`)
+            assert.deepStrictEqual(actualStack, expectedStack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+
+         it('should use Error stack trace', function () {
+            const traceId = 'trace-id'
+            const log = logger._traced({ traceId })
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const err = new Error('Error object')
+            log.reportError(err)
+
+            const data = writeSpy.lastCall.lastArg
+
+            assert.strictEqual(data.message, err.stack)
+            assert.notInclude(data.message, '/src/StructuredLogger.js')
+         })
+      })
+   })
+
+   context('StructuredRequestLogger', function () {
+
+      /** @type {InstanceType<loggers['StructuredLogger']>} */
+      let logger
+      before(function () {
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
       })
 
       describe('#child', function () {
@@ -1022,6 +1144,7 @@ describe('StructuredLogger', function () {
             assert.propertyVal(l, '_logName', logName)
             assert.deepPropertyVal(l, '_serviceContext', SERVICE_CONTEXT)
             assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'CHILD' })
+            assert.deepPropertyVal(l, '_trace', { trace: `projects/${projectId}/traces/${traceId}`, spanId: '00000043249f8fd3', traceSampled: true })
          })
 
          it('should use parents trace', function () {

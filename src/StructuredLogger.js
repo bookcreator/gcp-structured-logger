@@ -62,6 +62,22 @@ class StructuredLogger {
    }
 
    /**
+    * @package
+    * @param {{ traceId: string, spanId?: string, notSampled?: boolean }} trace
+    */
+   _traced({ traceId, spanId, notSampled = false }) {
+      return this._tracedChild({ trace: `projects/${this._projectId}/traces/${traceId}`, spanId, traceSampled: !notSampled })
+   }
+
+   /**
+    * @protected
+    * @param {Partial<import('../').TraceContext>} trace
+    */
+   _tracedChild(trace) {
+      return new StructuredTracedLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels }, trace)
+   }
+
+   /**
     * @protected
     * @param {Request} request
     * @param {import('../').ExtractUser?} extractUser
@@ -465,7 +481,43 @@ class StructuredLogger {
    }
 }
 
-class StructuredRequestLogger extends StructuredLogger {
+class StructuredTracedLogger extends StructuredLogger {
+
+   /**
+    * @param {string} projectId
+    * @param {string} logName
+    * @param {import('../').ServiceContext} serviceContext
+    * @param {import('../').Transport} productionTransport
+    * @param {{ [key: string]: string }} labels
+    * @param {Partial<import('../').TraceContext>} trace
+    */
+   constructor(projectId, logName, serviceContext, productionTransport, labels, trace) {
+      super(projectId, logName, serviceContext, productionTransport, labels)
+      /** @readonly @private */
+      this._trace = trace
+   }
+
+   /**
+    * @param {string} type
+    * @returns {StructuredTracedLogger}
+    */
+   child(type) {
+      const child = this._tracedChild(this._trace)
+      child._labels.type = type
+      return child
+   }
+
+   /**
+    * @param {import('../').LogEntry} entry
+    * @param {object | string} data
+    */
+   _write(entry, data) {
+      // Inject trace
+      super._write({ ...this._trace, ...entry }, data)
+   }
+}
+
+class StructuredRequestLogger extends StructuredTracedLogger {
 
    /**
     * @param {string} projectId
@@ -477,13 +529,11 @@ class StructuredRequestLogger extends StructuredLogger {
     * @param {import('../').ExtractUser?} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
-      super(projectId, logName, serviceContext, productionTransport, labels)
+      super(projectId, logName, serviceContext, productionTransport, labels, extractTraceContext(projectId, request) ?? {})
       /** @readonly @private */
       this._request = request
       /** @readonly @private */
       this._extractUser = extractUser
-      /** @readonly @private */
-      this._trace = extractTraceContext(projectId, request) ?? {}
    }
 
    /**
@@ -509,15 +559,6 @@ class StructuredRequestLogger extends StructuredLogger {
       }
       return event
    }
-
-   /**
-    * @param {import('../').LogEntry} entry
-    * @param {object | string} data
-    */
-   _write(entry, data) {
-      // Inject trace
-      super._write({ ...this._trace, ...entry }, data)
-   }
 }
 
 /**
@@ -536,4 +577,4 @@ class StructuredRequestLogger extends StructuredLogger {
  */
 const reportErrorMatcher = new RegExp(`^\\s*at\\s+(?:.+?\\.)?(?:${StructuredLogger.prototype.reportError.name}|${StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
 
-module.exports = { StructuredLogger, StructuredRequestLogger, nowNS }
+module.exports = { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger, nowNS }

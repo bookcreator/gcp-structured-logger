@@ -1,11 +1,11 @@
 /// <reference types="express-serve-static-core" />
 /// <reference types="next" />
-import { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-static-core';
+import type { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-static-core';
+import type { NextRequest as _NextRequest } from 'next/server'
+export import type { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger } from './src/StructuredLogger';
 import { LogSeverity } from "./src/severity";
-import { StructuredLogger, StructuredRequestLogger } from './src/StructuredLogger';
 import { requestToHttpRequest } from "./src/request-transformers";
 import { extractTraceContext } from "./src/trace-context";
-import { NextRequest as _NextRequest } from 'next/server'
 
 /** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#httprequest */
 export interface LoggingHttpRequest {
@@ -71,12 +71,10 @@ export interface LoggingConfig {
    productionTransport?: Transport;
 }
 
-export type StructuredLogger = StructuredLogger;
-export type StructuredRequestLogger = StructuredRequestLogger;
-
 export class Logging {
    constructor(config: LoggingConfig);
    readonly logger: StructuredLogger;
+   makeTracedLogger(trace: { traceId: string, spanId?: string, notSampled?: boolean }): StructuredTracedLogger;
    makeLoggingMiddleware(): RequestHandler;
    /** This should be attached after adding the result of `makeLoggingMiddleware`. */
    makeErrorMiddleware(): ErrorRequestHandler;

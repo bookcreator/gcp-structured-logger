@@ -111,6 +111,22 @@ describe('index.js', function () {
          assert.strictEqual(l.logger._productionTransport, productionTransport)
       })
 
+      context('#makeTracedLogger', function () {
+
+         it('should return StructuredTracedLogger', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            const traceId = 'trace-id'
+            const spanId = 'span-id'
+            const t = l.makeTracedLogger({ traceId, spanId })
+            assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
+         })
+      })
+
       context('#makeLoggingMiddleware', function () {
 
          it('should return middleware function', function () {

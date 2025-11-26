@@ -17,6 +17,13 @@ class Logging {
    }
 
    /**
+    * @param {{ traceId: string, spanId?: string, notSampled?: boolean }} trace
+    */
+   makeTracedLogger(trace) {
+      return this.logger._traced(trace)
+   }
+
+   /**
     * @private
     * @param {import('./src/StructuredLogger').Request} req
     */
