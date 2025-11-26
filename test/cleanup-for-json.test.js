@@ -285,6 +285,20 @@ describe('cleanup-for-json', function () {
                properties: e.properties,
             })
          })
+         it('should serialise to object (Error from a different realm)', function () {
+            const { createContext, runInContext } = require('node:vm')
+
+            const context = createContext()
+
+            const message = 'Some error'
+            const e = runInContext(`new Error('${message}')`, context)
+            assert.deepStrictEqual(cleanupForJSON(e), {
+               name: 'Error',
+               stack: e.stack,
+               message,
+               cause: undefined,
+            })
+         })
       })
    })
 

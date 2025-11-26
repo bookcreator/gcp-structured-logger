@@ -53,7 +53,7 @@ module.exports = function cleanupForJSON(obj) {
             val = _obj.map((v, k) => convert(v, String(k)))
          } else if (Symbol.iterator in _obj && typeof _obj[Symbol.iterator] === 'function') {
             val = convert([..._obj], parentKey)
-         } else if (types.isNativeError(_obj) || _obj instanceof Error) {
+         } else if (isError(_obj)) {
             let { name, stack, message, cause, ...props } = _obj
             // If the error name is just Error see if we've got a custom class name for it
             if (name === 'Error' && typeof _obj.constructor === 'function' && _obj.constructor.name) name = _obj.constructor.name
@@ -69,4 +69,15 @@ module.exports = function cleanupForJSON(obj) {
    }
 
    return convert(obj)
+}
+
+/**
+ * @param {any} thing
+ * @returns {thing is Error}
+ */
+function isError(thing) {
+   if (typeof types.isNativeError === 'function' && types.isNativeError(thing)) return true
+   // @ts-expect-error https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/isError
+   if (typeof Error.isError === 'function' && Error.isError(thing)) /* c8 ignore next: this can be removed once we target just Node24 */ return true
+   return thing instanceof Error
 }
