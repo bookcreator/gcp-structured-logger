@@ -25,10 +25,9 @@
   },
   "scripts": {
     "lint": "eslint --cache --fix .",
+    "pretest": "eslint --cache",
     "test-debug": "mocha --inspect-brk=50000 --no-timeout",
-    "test": "c8 --reporter=html --reporter=text-summary mocha --enable-source-maps",
-    "preci-test": "yarn lint",
-    "ci-test": "c8 --reporter=text --reporter=text-summary mocha --forbid-only --enable-source-maps",
+    "test": "c8 -reporter=text --reporter=html --reporter=text-summary mocha --enable-source-maps",
     "postversion": "git push --follow-tags"
   },
   "dependencies": {},
