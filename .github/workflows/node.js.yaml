@@ -21,8 +21,8 @@ jobs:
     name: v${{ matrix.node-version }}
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install --frozen-lockfile --production=false
@@ -37,8 +37,8 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "16"
           registry-url: "https://registry.npmjs.org"
