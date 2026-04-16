@@ -1,7 +1,6 @@
 {
    "compilerOptions": {
-      "module": "CommonJS",
-      "moduleResolution": "Node",
+      "module": "node18",
       "target": "ES2023",
       "noEmit": true,
       "checkJs": true
