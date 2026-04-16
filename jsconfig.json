@@ -1,6 +1,6 @@
 {
    "compilerOptions": {
-      "module": "node18",
+      "module": "node20",
       "target": "ES2023",
       "noEmit": true,
       "checkJs": true
