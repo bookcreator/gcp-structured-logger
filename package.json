@@ -39,7 +39,7 @@
     "eslint-plugin-mocha": "^11.2.0",
     "eslint-plugin-n": "^17.24.0",
     "mocha": "^11.7.5",
-    "next": "^12.3.4",
+    "next": "^16.2.4",
     "sinon": "^21.1.2"
   }
 }
