@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/express-serve-static-core": "^4.17.33",
+    "@types/express-serve-static-core": "^5.1.1",
     "c8": "^11.0.0",
     "chai": "^6.2.2",
     "eslint": "^10.2.0",
