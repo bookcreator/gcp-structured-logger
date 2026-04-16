@@ -34,7 +34,7 @@
     "@eslint/js": "^10.0.1",
     "@types/express-serve-static-core": "^4.17.33",
     "c8": "^11.0.0",
-    "chai": "^4.3.7",
+    "chai": "^6.2.2",
     "eslint": "^10.2.0",
     "eslint-plugin-mocha": "^11.2.0",
     "eslint-plugin-n": "^17.24.0",
