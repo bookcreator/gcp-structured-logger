@@ -30,14 +30,14 @@
     "test": "c8 -reporter=text --reporter=html --reporter=text-summary mocha --enable-source-maps",
     "postversion": "git push --follow-tags"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express-serve-static-core": "^4.17.33",
     "c8": "^9.1.0",
     "chai": "^4.3.7",
-    "eslint": "^8.38.0",
-    "eslint-plugin-mocha": "^10.0.5",
-    "eslint-plugin-n": "^15.7.0",
+    "eslint": "^10.2.0",
+    "eslint-plugin-mocha": "^11.2.0",
+    "eslint-plugin-n": "^17.24.0",
     "mocha": "^10.2.0",
     "next": "^12.3.4",
     "sinon": "^17.0.2"

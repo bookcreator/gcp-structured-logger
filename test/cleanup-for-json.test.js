@@ -254,6 +254,7 @@ describe('cleanup-for-json', function () {
                code: e.code,
             })
          })
+
          it('should serialise to object (Error prototype)', function () {
             const e = Object.create(Error.prototype)
             e.code = 'ERROR_CODE'
@@ -265,6 +266,7 @@ describe('cleanup-for-json', function () {
                code: e.code,
             })
          })
+
          it('should serialise to object (custom Error subclass)', function () {
             class CustomError extends Error {
                constructor() {
@@ -285,6 +287,7 @@ describe('cleanup-for-json', function () {
                properties: e.properties,
             })
          })
+
          it('should serialise to object (Error from a different realm)', function () {
             const { createContext, runInContext } = require('node:vm')
 

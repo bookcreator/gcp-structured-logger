@@ -431,9 +431,11 @@ describe('StructuredLogger', function () {
 
             context('without productionTransport', function () {
                let consoleFn
+
                before(function () {
                   consoleFn = require('../src/severity').CONSOLE_SEVERITY[LogSeverity.DEFAULT]
                })
+
                beforeEach(function () {
                   process.env.NODE_ENV = 'production'
                })
@@ -472,10 +474,12 @@ describe('StructuredLogger', function () {
             context('with productionTransport', function () {
 
                const productionTransport = sinon.spy(/** @type {import('../').Transport} */_entry => { })
+
                before(function () {
                   logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)
                   writeSpy = sinon.spy(logger, '_write')
                })
+
                beforeEach(function () {
                   process.env.NODE_ENV = 'production'
                   productionTransport.resetHistory()
@@ -777,6 +781,7 @@ describe('StructuredLogger', function () {
          ]
 
          for (const value of truthyValues) {
+
             it(`should not log anything when expression is truthy [${value}]`, function () {
                logger.assert(value)
 
@@ -794,6 +799,7 @@ describe('StructuredLogger', function () {
          ]
 
          for (const value of falsyValues) {
+
             it(`should log when expression is falsy [${value}]`, function () {
                logger.assert(value)
 
@@ -934,6 +940,7 @@ describe('StructuredLogger', function () {
                [36000000000000n, '10:00:00.000 (h:mm:ss.SSS)'],
             ])
             for (const [ns, string] of tests) {
+
                it(`with value '${ns}', should produce string '${string}'`, function () {
                   assert.strictEqual(logger._formatDuration(ns), string)
                })
@@ -983,6 +990,7 @@ describe('StructuredLogger', function () {
 
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger
+
       before(function () {
          logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
       })
@@ -1144,6 +1152,7 @@ describe('StructuredLogger', function () {
 
       /** @type {InstanceType<loggers['StructuredLogger']>} */
       let logger
+
       before(function () {
          logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
       })

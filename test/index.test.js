@@ -249,6 +249,7 @@ describe('index.js', function () {
          const requestUserExtractor = () => { }
          /** @type {InstanceType<logger['Logging']>} */
          let l
+
          beforeEach(function () {
             l = new logger.Logging({
                projectId,
@@ -369,19 +370,23 @@ describe('index.js', function () {
          let processOnSpy
          /** @type {sinon.SinonSpy<Parameters<process['off']>, void>} */
          let processOffSpy
+
          before(function () {
             processOnSpy = sinon.spy(process, 'on')
             processOffSpy = sinon.spy(process, 'off')
          })
+
          after(function () {
             processOnSpy.restore()
             processOffSpy.restore()
          })
+
          beforeEach(function () {
             processOnSpy.resetHistory()
             processOffSpy.resetHistory()
          })
          let detach
+
          afterEach(function () {
             if (detach) detach()
             detach = null
