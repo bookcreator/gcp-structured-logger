@@ -83,7 +83,7 @@ export class Logging {
    /** This should be attached after adding the result of `makeLoggingMiddleware`. */
    makeErrorMiddleware(): ErrorRequestHandler;
    http2RequestListener(listener: (req: Http2ServerRequestWithLog, res: Http2ServerResponse) => void): (req: Http2ServerRequest, res: Http2ServerResponse) => void;
-   http2StreamListener(listener: (stream: Http2ServerRequestWithLog, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void): (stream: Http2StreamWithLog, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void;
+   http2StreamListener(listener: (stream: Http2StreamWithLog, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void): (stream: Http2StreamWithLog, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void;
    nextJSMiddleware(req: _NextRequest): void;
    /** @returns A function to call to detach from the process. */
    attachToProcess(loggingTo: StructuredLogger): () => void;
