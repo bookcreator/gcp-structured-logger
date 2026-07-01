@@ -1,6 +1,7 @@
 const { finished } = require('stream')
 const { StructuredLogger } = require('./src/StructuredLogger')
 const { LogSeverity } = require('./src/severity')
+const { Http2RequestHeaders } = require('./src/http2-request-headers')
 
 class Logging {
 
@@ -57,6 +58,22 @@ class Logging {
          })
          next(err)
       }
+   }
+
+   /**
+    * @param {(req: import('./').Http2ServerRequestWithLog, res: import('node:http2').Http2ServerResponse) => void} listener
+    * @returns {(req: import('node:http2').Http2ServerRequest, res: import('node:http2').Http2ServerResponse) => void}
+    */
+   http2RequestListener(listener) {
+      return (req, res) => listener(/** @type {any} */(Object.defineProperty(req, 'log', { value: this._makeRequestLog(new Http2RequestHeaders(req.headers)), enumerable: true, configurable: false })), res)
+   }
+
+   /**
+    * @param {(stream: import('node:http2').Http2Stream, headers: import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void} listener
+    * @returns {(stream: import('./').Http2StreamWithLog, headers: import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void}
+    */
+   http2StreamListener(listener) {
+      return (stream, headers, ...args) => listener(/** @type {any} */(Object.defineProperty(stream, 'log', { value: this._makeRequestLog(new Http2RequestHeaders(headers)), enumerable: true, configurable: false })), headers, ...args)
    }
 
    /**

@@ -179,6 +179,139 @@ describe('index.js', function () {
          })
       })
 
+      context('#http2RequestListener', function () {
+
+         const { constants: http2 } = require('node:http2')
+
+         /**
+          * @param {Partial<import('node:http2').Http2ServerRequest>} req
+          * @param {Partial<import('node:http2').Http2ServerResponse>} res
+          */
+         const make = ({ headers, ...obj } = { headers: {} }, res = {}) => [{
+            ...obj,
+            headers: {
+               [http2.HTTP2_HEADER_PATH]: '/',
+               [http2.HTTP2_HEADER_SCHEME]: 'https',
+               [http2.HTTP2_HEADER_METHOD]: 'GET',
+               [http2.HTTP2_HEADER_AUTHORITY]: 'hello.com',
+               ...headers,
+            }
+         }, res]
+
+         it('should return listener function', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            assert.isFunction(l.http2RequestListener(...make()))
+         })
+
+         it('should attach log property', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            const listener = sinon.spy()
+            const m = l.http2RequestListener(listener)
+
+            const [req, res] = make()
+
+            m(req, res)
+
+            assert.instanceOf(req.log, require('../src/StructuredLogger').StructuredRequestLogger)
+            sinon.assert.calledOnceWithExactly(listener, req, res)
+         })
+
+         it('should include extractUser parameter on log property', function () {
+            const requestUserExtractor = sinon.stub()
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               requestUserExtractor,
+            })
+
+            const listener = sinon.spy()
+            const m = l.http2RequestListener(listener)
+
+            const [req, res] = make()
+
+            m(req, res)
+
+            assert.nestedPropertyVal(req, 'log._extractUser', requestUserExtractor)
+         })
+      })
+
+      context('#http2StreamListener', function () {
+
+         const { constants: http2 } = require('node:http2')
+
+         /**
+          * @param {Partial<import('node:http2').Http2Stream>} stream
+          * @param {Partial<import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader>} headers
+          * @param {number | undefined} flags
+          * @param {string[] | undefined} rawHeaders
+          */
+         const make = (stream = {}, headers = {}, flags = 0, rawHeaders = []) => [stream, {
+            [http2.HTTP2_HEADER_PATH]: '/',
+            [http2.HTTP2_HEADER_SCHEME]: 'https',
+            [http2.HTTP2_HEADER_METHOD]: 'GET',
+            [http2.HTTP2_HEADER_AUTHORITY]: 'hello.com',
+            ...headers,
+         }, flags, rawHeaders]
+
+         it('should return listener function', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            assert.isFunction(l.http2StreamListener(...make()))
+         })
+
+         it('should attach log property', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            const listener = sinon.spy()
+            const m = l.http2StreamListener(listener)
+
+            const [req, res] = make()
+
+            m(req, res)
+
+            assert.instanceOf(req.log, require('../src/StructuredLogger').StructuredRequestLogger)
+            sinon.assert.calledOnceWithExactly(listener, req, res)
+         })
+
+         it('should include extractUser parameter on log property', function () {
+            const requestUserExtractor = sinon.stub()
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               requestUserExtractor,
+            })
+
+            const listener = sinon.spy()
+            const m = l.http2StreamListener(listener)
+
+            const [req, res] = make()
+
+            m(req, res)
+
+            assert.nestedPropertyVal(req, 'log._extractUser', requestUserExtractor)
+         })
+      })
+
       context('#nextJSMiddleware', function () {
 
          /** @param {Partial<import('next/server').NextRequest>} obj */

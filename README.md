@@ -89,6 +89,35 @@ app.use(logger.makeErrorMiddleware())
 ```
 
 
+## With Node HTTP2 server
+
+Can be use with [`node:http2`](https://nodejs.org/api/http2.html) server but only for attaching a `log` property to a `Http2ServerRequest` or `Http2Stream`.
+
+There is no error reporting middleware for HTTP2, so you will need to call `log.reportError` yourself if you want to report errors.
+
+```js
+const http2 = require('node:http2')
+
+const server = http2.createServer()
+
+// With a stream
+server.on('stream', logger.http2StreamListener((stream, headers) => {
+
+   stream.log.info('Incoming request')
+   stream.respond({ ':status': 200 })
+   stream.end('Hello World')
+}))
+
+// Or with a request
+server.on('request', logger.http2RequestListener((req, res) => {
+
+   req.log.info('Incoming request')
+   res.writeHead(200)
+   res.end('Hello World')
+}))
+```
+
+
 ## With NextJS
 
 Can be use Next.js in the [middleware file](https://nextjs.org/docs/app/building-your-application/routing/middleware#convention), it should be added as the first middleware (to allow you to use `req.log` in future middlewares).

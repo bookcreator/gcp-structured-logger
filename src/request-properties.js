@@ -4,7 +4,7 @@
  * @param {Request} req
  * @returns {string}
  */
-module.exports.getUrl = (req) => 'originalUrl' in req ? req.originalUrl : req.url
+module.exports.getUrl = req => 'originalUrl' in req ? req.originalUrl : req.url
 
 /**
  * @param {Request} req
@@ -15,7 +15,8 @@ module.exports.getHeader = (req, name) => {
    if ('get' in req) {
       return req.get(name)
    } else {
-      return req.headers.has(name) ? req.headers.get(name) : undefined
+      const r = /** @type {import('next/server').NextRequest} */ (req)
+      return r.headers.has(name) ? /** @type {string} */(r.headers.get(name)) : undefined
    }
 }
 
@@ -25,6 +26,7 @@ module.exports.getHeader = (req, name) => {
  */
 module.exports.getProtocol = (req) => {
    if ('protocol' in req && req.protocol) return req.protocol + '/' + req.httpVersion
+   if ('http2Protocol' in req) return req.http2Protocol
 }
 
 /**
@@ -32,7 +34,7 @@ module.exports.getProtocol = (req) => {
  * @returns {string | undefined}
  */
 module.exports.getRemoteIp = (req) => {
-   if ('get' in req) {
+   if ('originalUrl' in req) {
       // Express request - this handles the x-forwarded header for you
       const ip = req.ip || (Array.isArray(req.ips) ? req.ips[0] : undefined)
       if (ip) return ip
