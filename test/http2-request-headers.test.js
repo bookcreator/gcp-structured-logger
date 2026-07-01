@@ -62,7 +62,7 @@ describe('http2-request-headers', function () {
 
       it('should return header value for differently cased name', function () {
          const req = make({ [http2.HTTP2_HEADER_USER_AGENT]: 'UA' })
-         assert.strictEqual(req.get(/** @type {any} */('User-Agent')), 'UA')
+         assert.strictEqual(req.get('User-Agent'), 'UA')
       })
 
       it('should return array value for set-cookie header', function () {
@@ -74,9 +74,9 @@ describe('http2-request-headers', function () {
          assert.isUndefined(make().get('user-agent'))
       })
 
-      it('should return no value for unknown header name', function () {
-         const req = make({ [/** @type {any} */('x-not-a-header')]: 'value' })
-         assert.isUndefined(req.get(/** @type {any} */('x-not-a-header')))
+      it('should return value for custom header name', function () {
+         const req = make({ 'x-not-a-header': 'value' })
+         assert.strictEqual(req.get('x-not-a-header'), 'value')
       })
    })
 })
