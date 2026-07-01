@@ -69,8 +69,8 @@ class Logging {
    }
 
    /**
-    * @param {(stream: import('node:http2').Http2Stream, headers: import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void} listener
-    * @returns {(stream: import('./').Http2StreamWithLog, headers: import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void}
+    * @param {(stream: import('./').ServerHttp2StreamWithLog, headers: import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void} listener
+    * @returns {(stream: import('node:http2').ServerHttp2Stream, headers: import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void}
     */
    http2StreamListener(listener) {
       return (stream, headers, ...args) => listener(/** @type {any} */(Object.defineProperty(stream, 'log', { value: this._makeRequestLog(new Http2RequestHeaders(headers)), enumerable: true, configurable: false })), headers, ...args)

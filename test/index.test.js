@@ -251,7 +251,7 @@ describe('index.js', function () {
          const { constants: http2 } = require('node:http2')
 
          /**
-          * @param {Partial<import('node:http2').Http2Stream>} stream
+          * @param {Partial<import('node:http2').ServerHttp2Stream>} stream
           * @param {Partial<import('node:http2').IncomingHttpHeaders & import('node:http2').IncomingHttpStatusHeader>} headers
           * @param {number | undefined} flags
           * @param {string[] | undefined} rawHeaders
