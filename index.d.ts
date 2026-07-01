@@ -1,6 +1,6 @@
 /// <reference types="express-serve-static-core" />
 /// <reference types="next" />
-import type { Http2ServerRequest, Http2Stream, IncomingHttpHeaders, IncomingHttpStatusHeader } from 'node:http2';
+import type { Http2ServerRequest, ServerHttp2Stream, IncomingHttpHeaders, IncomingHttpStatusHeader } from 'node:http2';
 import type { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-static-core';
 import type { NextRequest as _NextRequest } from 'next/server'
 import type { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger } from './src/StructuredLogger';
