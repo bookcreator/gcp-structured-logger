@@ -124,16 +124,6 @@ describe('request-transformers', function () {
             assert.strictEqual(getRemoteIp(req), '127.0.0.1')
          })
 
-         it('should return value derived from x-forwarded-for headers', function () {
-            const req = make({
-               ...base,
-               headers: {
-                  'x-forwarded-for': '127.0.0.1'
-               }
-            })
-            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
-         })
-
          it('should return value derived from x-forwarded-for headers (multiple values)', function () {
             const req = make({
                ...base,
@@ -247,16 +237,6 @@ describe('request-transformers', function () {
          })
 
          it('should return value derived from x-forwarded-for header', function () {
-            const req = make({
-               ...base,
-               headers: {
-                  'x-forwarded-for': '127.0.0.1'
-               }
-            })
-            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
-         })
-
-         it('should return value derived from x-forwarded-for headers', function () {
             const req = make({
                ...base,
                headers: {
