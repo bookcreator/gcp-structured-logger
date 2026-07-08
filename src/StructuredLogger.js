@@ -150,12 +150,18 @@ class StructuredLogger {
       }
       // If we had an error object copy over enumerable properties
       if (err && typeof err === 'object') {
-         // @ts-ignore
-         const { message: _message, stack: _stack, cause, ...props } = err
+         let { message: _message, stack: _stack, cause, errors, ...props } = err
          // @ts-ignore
          event.error = props
          // @ts-ignore
-         if (cause !== undefined) event.error.cause = cause
+         if (errors !== undefined) event.error.errors = errors
+
+         // Handle recursive causes - but prevent circular reference loops bail out after 10 levels
+         let depthLeft = 10
+         while (depthLeft-- > 0 && cause && typeof cause === 'object') {
+            props = props.cause = cause
+            cause = cause.cause
+         }
       }
       this._write({ severity, timestamp }, event)
    }

@@ -727,6 +727,30 @@ describe('StructuredLogger', function () {
             sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ error: { cause } }))
          })
 
+         it('should use include deep errors cause', function () {
+            const cause = new Error('CAUSE', { cause: new Error('CAUSE2') })
+            const error = new Error('TOP LEVEL', { cause })
+            logger.reportError(error)
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ error: { cause } }))
+         })
+
+         it('should use ignore circular errors cause', function () {
+            const cause = new Error('CAUSE')
+            cause.cause = cause
+            const error = new Error('TOP LEVEL', { cause })
+            logger.reportError(error)
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ error: { cause } }))
+         })
+
+         it('should use AggregateError errors property', function () {
+            const error = new AggregateError([new Error('SUB-ERROR1'), new Error('SUB-ERROR2')], 'TOP LEVEL')
+            logger.reportError(error)
+
+            sinon.assert.calledOnceWithExactly(writeSpy, sinonMatch.object, sinonMatch({ error: { errors: error.errors } }))
+         })
+
          it('should include error.user on context', function () {
             const USER = 'A_USER'
             const error = new Error()
