@@ -312,12 +312,14 @@ describe('cleanup-for-json', function () {
          const v = {
             1: /abcde\(f/ig,
             '2': data,
-            'hello': date
+            'hello': date,
+            'bigint': 10n,
          }
          assert.deepStrictEqual(cleanupForJSON(v), {
             1: { '@type': 'RegExp', source: 'abcde\\(f', flags: 'gi' },
             '2': { '@type': 'Buffer', length: data.length, base64: data.toString('base64') },
             'hello': date.toISOString(),
+            'bigint': '10',
          })
       })
 
