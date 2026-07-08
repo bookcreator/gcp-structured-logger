@@ -145,6 +145,16 @@ describe('request-transformers', function () {
             })
             assert.isUndefined(getRemoteIp(req))
          })
+
+         it('should ignore excessively large x-forwarded-for headers', function () {
+            const req = make({
+               ...base,
+               headers: {
+                  'x-forwarded-for': '127.0.0.1,'.repeat(200) + '10.0.0.0'
+               }
+            })
+            assert.strictEqual(getRemoteIp(req))
+         })
       })
    })
 

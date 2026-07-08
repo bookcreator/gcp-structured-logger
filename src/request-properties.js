@@ -42,8 +42,11 @@ module.exports.getRemoteIp = (req) => {
    // If we're in NextJS land (or IPs failed to resolve) use the forwarded header
    const headerIps = this.getHeader(req, 'x-forwarded-for')
    if (headerIps) {
-      const ip = headerIps.split(/\s*,\s*/)[0]
-      if (ip) return ip
+      // Prevent DoS attacks for massive headers (allow at the most 64 IPs in the header)
+      if (headerIps.length <= 1_024) {
+         const ip = headerIps.split(/\s*,\s*/)[0]
+         if (ip) return ip
+      }
    }
 }
 
