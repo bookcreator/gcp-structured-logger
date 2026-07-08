@@ -57,6 +57,8 @@ module.exports = function cleanupForJSON(obj) {
             let { name, stack, message, cause, ...props } = _obj
             // If the error name is just Error see if we've got a custom class name for it
             if (name === 'Error' && typeof _obj.constructor === 'function' && _obj.constructor.name) name = _obj.constructor.name
+            // @ts-ignore
+            if (name === 'AggregateError' || _obj instanceof AggregateError) props.errors = _obj.errors
             val = convert({ ...props, name, stack, message, cause }, parentKey)
          } else {
             val = {}

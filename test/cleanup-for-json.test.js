@@ -233,6 +233,93 @@ describe('cleanup-for-json', function () {
          })
       })
 
+      it('should serialise AggregateError errors', function () {
+         const error = new AggregateError([new Error('SUB-ERROR1'), new Error('SUB-ERROR2')], 'TOP LEVEL')
+
+         assert.deepStrictEqual(cleanupForJSON(error), {
+            name: 'AggregateError',
+            stack: error.stack,
+            message: error.message,
+            cause: undefined,
+            errors: [
+               {
+                  name: 'Error',
+                  stack: error.errors[0].stack,
+                  message: error.errors[0].message,
+                  cause: undefined,
+               },
+               {
+                  name: 'Error',
+                  stack: error.errors[1].stack,
+                  message: error.errors[1].message,
+                  cause: undefined,
+               },
+            ],
+         })
+      })
+
+      it('should serialise custom AggregateError subclass', function () {
+         class CustomAggregateError extends AggregateError {
+            constructor() {
+               super([new Error('SUB-ERROR1'), new Error('SUB-ERROR2')], 'TOP LEVEL')
+               this.name = 'CustomAggregateError'
+            }
+         }
+         const error = new CustomAggregateError()
+
+         assert.deepStrictEqual(cleanupForJSON(error), {
+            name: 'CustomAggregateError',
+            stack: error.stack,
+            message: error.message,
+            cause: undefined,
+            errors: [
+               {
+                  name: 'Error',
+                  stack: error.errors[0].stack,
+                  message: error.errors[0].message,
+                  cause: undefined,
+               },
+               {
+                  name: 'Error',
+                  stack: error.errors[1].stack,
+                  message: error.errors[1].message,
+                  cause: undefined,
+               },
+            ],
+         })
+      })
+
+      it('should serialise AggregateError cause errors', function () {
+         const cause = new AggregateError([new Error('SUB-ERROR1'), new Error('SUB-ERROR2')], 'CAUSE')
+         const error = new Error('TOP LEVEL', { cause })
+
+         assert.deepStrictEqual(cleanupForJSON(error), {
+            name: 'Error',
+            stack: error.stack,
+            message: error.message,
+            cause: {
+               name: 'AggregateError',
+               stack: cause.stack,
+               message: cause.message,
+               cause: undefined,
+               errors: [
+                  {
+                     name: 'Error',
+                     stack: cause.errors[0].stack,
+                     message: cause.errors[0].message,
+                     cause: undefined,
+                  },
+                  {
+                     name: 'Error',
+                     stack: cause.errors[1].stack,
+                     message: cause.errors[1].message,
+                     cause: undefined,
+                  },
+               ],
+            }
+         })
+      })
+
       context('Custom properties', function () {
          it('should serialise to object (base Error)', function () {
             const e = new Error('Some error')
