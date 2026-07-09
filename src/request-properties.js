@@ -1,10 +1,10 @@
-/** @typedef {import('./StructuredLogger').Request} Request */
+/** @typedef {import('./types').Request} Request */
 
 /**
  * @param {Request} req
  * @returns {string}
  */
-module.exports.getUrl = req => 'originalUrl' in req ? req.originalUrl : req.url
+module.exports.getUrl = (req) => req.originalUrl || req.url
 
 /**
  * @param {Request} req
@@ -12,12 +12,18 @@ module.exports.getUrl = req => 'originalUrl' in req ? req.originalUrl : req.url
  * @returns {string | undefined}
  */
 module.exports.getHeader = (req, name) => {
-   if ('get' in req) {
+   if (typeof req.get === 'function') {
+      // Express-style accessor
       return req.get(name)
-   } else {
-      const r = /** @type {import('next/server').NextRequest} */ (req)
-      return r.headers.has(name) ? /** @type {string} */(r.headers.get(name)) : undefined
    }
+   if (!req.headers) return undefined
+   if (typeof req.headers.get === 'function') {
+      // WHATWG `Headers` (Next.js / fetch)
+      return req.headers.has(name) ? req.headers.get(name) : undefined
+   }
+   // Plain-object headers (a raw Node request); keys are already lower-cased
+   const value = req.headers[name.toLowerCase()]
+   return Array.isArray(value) ? value.join(', ') : value
 }
 
 /**
@@ -25,7 +31,7 @@ module.exports.getHeader = (req, name) => {
  * @returns {string | undefined}
  */
 module.exports.getProtocol = (req) => {
-   if ('protocol' in req && req.protocol) return req.protocol + '/' + req.httpVersion
+   if ('protocol' in req && req.protocol) return `${req.protocol}/${req.httpVersion}`
    if ('http2Protocol' in req) return req.http2Protocol
 }
 
@@ -52,7 +58,7 @@ module.exports.getRemoteIp = (req) => {
 
 /**
  * @param {Request} req
- * @returns {import('express-serve-static-core').Response | undefined}
+ * @returns {import('./types').Response | undefined}
  */
 module.exports.getResponse = (req) => {
    if ('res' in req && req.res) return req.res

@@ -6,7 +6,7 @@ const { requestToErrorReportingHttpRequest } = require('./request-transformers')
 const { now: nowNS, hrToTimestamp, timestampToISOString, NS_MICROSECOND, NS_MILLISECOND, NS_SECOND, NS_MINUTE, NS_HOUR } = require('./hr-time')
 
 /**
- * @type {Partial<Record<keyof import('../').LogEntry, string | false>>}
+ * @type {Partial<Record<keyof import('./types').LogEntry, string | false>>}
  * `false` will not map.
  *  Missing values will just use the key name.
  *  @see https://cloud.google.com/logging/docs/agent/configuration#special-fields
@@ -27,15 +27,32 @@ const LOG_ENTRY_MAPPING = {
    message: false,
 }
 
-/** @typedef {import('express-serve-static-core').Request | import('next/server').NextRequest | import('./http2-request-headers').Http2RequestHeaders} Request */
+/** @typedef {import('./types').Request} Request */
+/** @typedef {import('./request-transformers').HttpRequestContext} HttpRequestContext */
+
+/**
+ * Per-logger context that gets merged into reported errors. Each value may be provided
+ * directly or as a thunk that is resolved lazily at report time (so, for example, a
+ * request's final response status code is captured).
+ * @typedef {object} ReportableContext
+ * @prop {HttpRequestContext | (() => HttpRequestContext | undefined)} [httpRequest]
+ * @prop {string | null | void | (() => string | null | void)} [user]
+ */
+
+/**
+ * Resolves a `ReportableContext` value that may be a direct value or a thunk.
+ * @param {any} value
+ * @returns {any}
+ */
+const resolveContextValue = (value) => typeof value === 'function' ? value() : value
 
 class StructuredLogger {
 
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport?} productionTransport
+    * @param {import('./types').ServiceContext} serviceContext
+    * @param {import('./types').Transport | null | undefined} productionTransport
     * @param {{ [key: string]: string }} labels
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels) {
@@ -65,22 +82,41 @@ class StructuredLogger {
     * @package
     * @param {{ traceId: string, spanId?: string, sampled?: boolean }} trace
     */
-   _traced({ traceId, spanId, sampled }) {
-      return this._tracedChild({ trace: `projects/${this._projectId}/traces/${traceId}`, spanId, traceSampled: sampled })
+   _traced(trace) {
+      return this._tracedChild(this._normalizeTrace(trace))
+   }
+
+   /**
+    * Converts a friendly trace descriptor into the internal `TraceContext` shape.
+    * @package
+    * @param {{ traceId: string, spanId?: string, sampled?: boolean }} trace
+    * @returns {Partial<import('./types').TraceContext>}
+    */
+   _normalizeTrace({ traceId, spanId, sampled }) {
+      return { trace: `projects/${this._projectId}/traces/${traceId}`, spanId, traceSampled: sampled }
    }
 
    /**
     * @protected
-    * @param {Partial<import('../').TraceContext>} trace
+    * @param {Partial<import('./types').TraceContext>} trace
     */
    _tracedChild(trace) {
       return new StructuredTracedLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels }, trace)
    }
 
    /**
+    * Builds an enriched logger that carries trace and/or HTTP-request + user context as data.
+    * @package
+    * @param {{ trace?: Partial<import('./types').TraceContext>, httpRequest?: ReportableContext['httpRequest'], user?: ReportableContext['user'], labels?: { [key: string]: string } }} [context]
+    */
+   _contextChild({ trace, httpRequest, user, labels } = {}) {
+      return new StructuredContextLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, ...labels }, trace ?? {}, { httpRequest, user })
+   }
+
+   /**
     * @protected
     * @param {Request} request
-    * @param {import('../').ExtractUser?} extractUser
+    * @param {import('./types').ExtractUser?} extractUser
     */
    _requestChild(request, extractUser) {
       return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
@@ -289,7 +325,7 @@ class StructuredLogger {
 
    /**
     * @typedef {object} ReportedErrorEvent
-    * @prop {import('../').ServiceContext} serviceContext
+    * @prop {import('./types').ServiceContext} serviceContext
     * @prop {string} message
     * @prop {{ httpRequest?: import('./request-transformers').HttpRequestContext, user?: string }} context
     *
@@ -378,11 +414,11 @@ class StructuredLogger {
 
    /**
     * @protected
-    * @param {import('../').LogEntry} metadata
+    * @param {import('./types').LogEntry} metadata
     * @param {object | string} data
     */
    _write({ timestamp, ..._metadata }, data) {
-      /** @type {import('../').LogEntry} */
+      /** @type {import('./types').LogEntry} */
       const metadata = {
          timestamp,
          ..._metadata,
@@ -492,14 +528,14 @@ class StructuredTracedLogger extends StructuredLogger {
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport} productionTransport
+    * @param {import('./types').ServiceContext} serviceContext
+    * @param {import('./types').Transport | null | undefined} productionTransport
     * @param {{ [key: string]: string }} labels
-    * @param {Partial<import('../').TraceContext>} trace
+    * @param {Partial<import('./types').TraceContext>} trace
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, trace) {
       super(projectId, logName, serviceContext, productionTransport, labels)
-      /** @readonly @private */
+      /** @readonly @protected */
       this._trace = trace
    }
 
@@ -514,7 +550,7 @@ class StructuredTracedLogger extends StructuredLogger {
    }
 
    /**
-    * @param {import('../').LogEntry} entry
+    * @param {import('./types').LogEntry} entry
     * @param {object | string} data
     */
    _write(entry, data) {
@@ -523,19 +559,60 @@ class StructuredTracedLogger extends StructuredLogger {
    }
 }
 
-class StructuredRequestLogger extends StructuredTracedLogger {
+class StructuredContextLogger extends StructuredTracedLogger {
 
    /**
     * @param {string} projectId
     * @param {string} logName
-    * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport} productionTransport
+    * @param {import('./types').ServiceContext} serviceContext
+    * @param {import('./types').Transport | null | undefined} productionTransport
+    * @param {{ [key: string]: string }} labels
+    * @param {Partial<import('./types').TraceContext>} trace
+    * @param {ReportableContext} context
+    */
+   constructor(projectId, logName, serviceContext, productionTransport, labels, trace, context) {
+      super(projectId, logName, serviceContext, productionTransport, labels, trace)
+      /** @readonly @private */
+      this._context = context
+   }
+
+   /**
+    * @param {string} type
+    * @returns {StructuredContextLogger}
+    */
+   child(type) {
+      const child = this._contextChild({ trace: this._trace, httpRequest: this._context.httpRequest, user: this._context.user })
+      child._labels.type = type
+      return child
+   }
+
+   /**
+    * @param {any} err
+    */
+   _makeReportableError(err) {
+      const event = super._makeReportableError(err)
+      // Merge in HTTP-request and user context, resolving thunks at report time
+      const httpRequest = resolveContextValue(this._context.httpRequest)
+      if (httpRequest) event.context.httpRequest = httpRequest
+      const user = resolveContextValue(this._context.user)
+      if (user) event.context.user = String(user)
+      return event
+   }
+}
+
+class StructuredRequestLogger extends StructuredContextLogger {
+
+   /**
+    * @param {string} projectId
+    * @param {string} logName
+    * @param {import('./types').ServiceContext} serviceContext
+    * @param {import('./types').Transport | null | undefined} productionTransport
     * @param {{ [key: string]: string }} labels
     * @param {Request} request
-    * @param {import('../').ExtractUser?} extractUser
+    * @param {import('./types').ExtractUser?} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
-      super(projectId, logName, serviceContext, productionTransport, labels, extractTraceContext(projectId, request) ?? {})
+      super(projectId, logName, serviceContext, productionTransport, labels, extractTraceContext(projectId, request) ?? {}, {})
       /** @readonly @private */
       this._request = request
       /** @readonly @private */
@@ -553,16 +630,16 @@ class StructuredRequestLogger extends StructuredTracedLogger {
    }
 
    /**
+    * The request defines the reported error's HTTP + user context wholesale: an `err.user` is
+    * not carried through (the user comes only from the extractor). This preserves the historical
+    * request-logger behaviour rather than the context logger's merge-in semantics.
     * @param {any} err
     */
    _makeReportableError(err) {
       const event = super._makeReportableError(err)
-      // Add in request and user info
       event.context = { httpRequest: requestToErrorReportingHttpRequest(this._request) }
-      if (typeof this._extractUser === 'function') {
-         const user = this._extractUser(this._request)
-         if (user) event.context.user = user
-      }
+      const user = this._extractUser?.(this._request)
+      if (user) event.context.user = String(user)
       return event
    }
 }
@@ -581,6 +658,6 @@ class StructuredRequestLogger extends StructuredTracedLogger {
  *          -> <__filename>:<LN>:<CN>
  * ```
  */
-const reportErrorMatcher = new RegExp(`^\\s*at\\s+(?:.+?\\.)?(?:${StructuredLogger.prototype.reportError.name}|${StructuredRequestLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
+const reportErrorMatcher = new RegExp(`^\\s*at\\s+(?:.+?\\.)?(?:${StructuredLogger.prototype.reportError.name}|${StructuredContextLogger.prototype._makeReportableError.name}) \\(${__filename}:[0-9]+:[0-9]+\\)$\n(?:\\s*->\\s+${__filename}:[0-9]+:[0-9]+$\n)?`, 'gm')
 
-module.exports = { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger, nowNS }
+module.exports = { StructuredLogger, StructuredTracedLogger, StructuredContextLogger, StructuredRequestLogger, nowNS }

@@ -1,0 +1,19 @@
+{
+   "compilerOptions": {
+      "strict": true,
+      "noEmit": true,
+      "allowJs": false,
+      "skipLibCheck": true,
+      "esModuleInterop": true,
+      "module": "node16",
+      "moduleResolution": "node16",
+      "target": "ES2022",
+      "paths": {
+         "gcp-structured-logger": ["../../types/index.d.ts"],
+         "gcp-structured-logger/express": ["../../types/express.d.ts"],
+         "gcp-structured-logger/next": ["../../types/next.d.ts"],
+         "gcp-structured-logger/context": ["../../types/src/async-context.d.ts"]
+      }
+   },
+   "files": ["consumer.ts"]
+}

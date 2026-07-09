@@ -1,0 +1,24 @@
+{
+   // Strictly type-checks the generated CORE declarations themselves (skipLibCheck: false), which
+   // consumer.ts cannot do — it imports `next/server`, whose own .d.ts don't pass a strict lib
+   // check under node16. The core declarations are framework-agnostic, so they check cleanly here
+   // and this catches malformed emit (duplicate identifiers, broken augmentations) before publish.
+   //
+   // `types: ["node"]` pins the ambient types to Node's builtins only: the HTTP2 declarations
+   // reference `node:http2`, so node types must be present, but pinning also keeps this a genuine
+   // framework-agnostic check — a stray `express`/`next` type leaking into a core declaration would
+   // fail here rather than silently resolve via auto-included @types.
+   "compilerOptions": {
+      "strict": true,
+      "noEmit": true,
+      "skipLibCheck": false,
+      "module": "node16",
+      "moduleResolution": "node16",
+      "target": "ES2022",
+      "types": ["node"]
+   },
+   "include": [
+      "../../types/index.d.ts",
+      "../../types/src/**/*.d.ts"
+   ]
+}

@@ -32,12 +32,27 @@ jobs:
       - run: npm ci
       - run: npm test -- --forbid-only
 
+  types:
+    runs-on: ubuntu-latest
+
+    name: Types
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - run: npm ci
+      # Builds the published .d.ts, strict-checks the generated core declarations, typechecks a
+      # consumer, and verifies subpath resolution through a real installed layout
+      - run: npm run test:types
+
   publish:
     runs-on: ubuntu-latest
 
     name: Publish
 
-    needs: test
+    needs: [test, types]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
@@ -46,4 +61,6 @@ jobs:
         with:
           node-version: lts/*
           registry-url: "https://registry.npmjs.org"
+      # Required so `prepack` (npm run build) can resolve the typescript devDependency
+      - run: npm ci
       - run: npm publish

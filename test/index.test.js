@@ -124,6 +124,99 @@ describe('index.js', function () {
             const spanId = 'span-id'
             const t = l.makeTracedLogger({ traceId, spanId })
             assert.instanceOf(t, require('../src/StructuredLogger').StructuredTracedLogger)
+            // A plain traced logger, not the richer context logger
+            assert.notInstanceOf(t, require('../src/StructuredLogger').StructuredContextLogger)
+         })
+
+         it('should throw when no trace descriptor is provided (fail fast)', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            assert.throws(() => l.makeTracedLogger(), TypeError)
+         })
+      })
+
+      context('#makeContextLogger', function () {
+
+         /** @type {InstanceType<logger['Logging']>} */
+         let l
+
+         beforeEach(function () {
+            l = new logger.Logging({ projectId, logName, serviceContext })
+         })
+
+         it('should return StructuredContextLogger', function () {
+            const c = l.makeContextLogger({ httpRequest: { method: 'GET', url: '/x' }, user: 'U' })
+            assert.instanceOf(c, require('../src/StructuredLogger').StructuredContextLogger)
+         })
+
+         it('should accept a friendly trace descriptor', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const c = l.makeContextLogger({ trace: { traceId, spanId: '1' } })
+            assert.nestedPropertyVal(c, '_trace.trace', `projects/${projectId}/traces/${traceId}`)
+         })
+
+         it('should accept an extracted TraceContext', function () {
+            const trace = { trace: `projects/${projectId}/traces/abc`, spanId: '00000000000003e8', traceSampled: true }
+            const c = l.makeContextLogger({ trace })
+            assert.deepNestedPropertyVal(c, '_trace', trace)
+         })
+
+         it('should accept a bare trace-id string', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const c = l.makeContextLogger({ trace: traceId })
+            assert.nestedPropertyVal(c, '_trace.trace', `projects/${projectId}/traces/${traceId}`)
+         })
+
+         it('should not throw on a missing or unusable trace', function () {
+            assert.doesNotThrow(() => l.makeContextLogger())
+            assert.doesNotThrow(() => l.makeContextLogger({ trace: 42 }))
+            assert.deepPropertyVal(l.makeContextLogger({ trace: 42 }), '_trace', {})
+         })
+
+         it('should produce enriched errors from a plain object', function () {
+            const httpRequest = { method: 'POST', url: '/slack' }
+            const c = l.makeContextLogger({ httpRequest, user: 'U123' })
+            const writeSpy = sinon.spy(c, '_write')
+            c.reportError('boom')
+            assert.deepNestedPropertyVal(writeSpy.lastCall.lastArg, 'context', { httpRequest, user: 'U123' })
+         })
+      })
+
+      context('AsyncLocalStorage', function () {
+
+         /** @type {InstanceType<logger['Logging']>} */
+         let l
+
+         beforeEach(function () {
+            l = new logger.Logging({ projectId, logName, serviceContext })
+         })
+
+         it('#activeLogger should fall back to the base logger outside any scope', function () {
+            assert.strictEqual(l.activeLogger(), l.logger)
+         })
+
+         it('#runWithLogger should make the logger active and restore afterwards', function () {
+            const reqLog = l.makeContextLogger({ labels: { type: 'request' } })
+            const result = l.runWithLogger(reqLog, () => {
+               assert.strictEqual(l.activeLogger(), reqLog)
+               return 'done'
+            })
+            assert.strictEqual(result, 'done')
+            assert.strictEqual(l.activeLogger(), l.logger)
+         })
+
+         it('#activeLogger should not observe another Logging instance active logger', function () {
+            const other = new logger.Logging({ projectId, logName, serviceContext })
+            const otherLog = other.makeContextLogger({ labels: { type: 'other' } })
+
+            other.runWithLogger(otherLog, () => {
+               // Inside another instance's scope, this instance still resolves to its own base logger
+               assert.strictEqual(l.activeLogger(), l.logger)
+            })
          })
       })
 
@@ -176,6 +269,22 @@ describe('index.js', function () {
             m(req, resStub, nextStub)
 
             assert.nestedPropertyVal(req, 'log._extractUser', requestUserExtractor)
+         })
+
+         it('should forward options to the express adapter (als)', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+
+            const resStub = sinon.createStubInstance(require('http').ServerResponse)
+            const req = make({ res: resStub })
+
+            let activeInside
+            l.makeLoggingMiddleware({ als: true })(req, resStub, () => { activeInside = l.activeLogger() })
+
+            assert.strictEqual(activeInside, req.log)
          })
       })
 

@@ -13,8 +13,8 @@ const TRACE_PARENT_FLAGS = {
 
 /**
  * @param {string} projectId
- * @param {import('./StructuredLogger').Request} req
- * @returns {import('../').TraceContext | undefined}
+ * @param {import('./types').Request} req
+ * @returns {import('./types').TraceContext | undefined}
  */
 function extractTraceContext(projectId, req) {
    /** @type {string | undefined} */
