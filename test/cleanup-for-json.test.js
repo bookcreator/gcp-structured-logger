@@ -565,7 +565,7 @@ describe('cleanup-for-json', function () {
 
          assert.deepStrictEqual(cleanupForJSON(v), { hello: 'world' })
 
-         sinon.assert.calledOnceWithExactly(customInspect, inspect.defaultOptions.depth, inspect.defaultOptions)
+         sinon.assert.calledOnceWithExactly(customInspect, inspect.defaultOptions.depth, inspect.defaultOptions, inspect)
       })
 
       it('should serialise to object using inspect.custom that returns array', function () {
