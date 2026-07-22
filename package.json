@@ -4,10 +4,55 @@
   "description": "Structured logger for GCP logging",
   "main": "index.js",
   "files": [
+    "index.js",
+    "express.js",
+    "next.js",
+    "context.js",
     "src/**/*.js",
-    "index.d.ts"
+    "types"
   ],
-  "types": "index.d.ts",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./index.js"
+    },
+    "./index.js": {
+      "types": "./types/index.d.ts",
+      "default": "./index.js"
+    },
+    "./express": {
+      "types": "./types/express.d.ts",
+      "default": "./express.js"
+    },
+    "./next": {
+      "types": "./types/next.d.ts",
+      "default": "./next.js"
+    },
+    "./context": {
+      "types": "./types/src/async-context.d.ts",
+      "default": "./context.js"
+    },
+    "./src/*": {
+      "types": "./types/src/*.d.ts",
+      "default": "./src/*.js"
+    },
+    "./src/*.js": {
+      "types": "./types/src/*.d.ts",
+      "default": "./src/*.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "express": ["./types/express.d.ts"],
+      "next": ["./types/next.d.ts"],
+      "context": ["./types/src/async-context.d.ts"],
+      "index.js": ["./types/index.d.ts"],
+      "src/*.js": ["./types/src/*.d.ts"],
+      "src/*": ["./types/src/*.d.ts"]
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bookcreator/gcp-structured-logger.git"
@@ -28,7 +73,22 @@
     "pretest": "eslint --cache",
     "test-debug": "mocha --inspect-brk=50000 --no-timeout",
     "test": "c8 --reporter=text --reporter=html --reporter=text-summary mocha --enable-source-maps",
+    "build": "node scripts/build-types.js",
+    "test:types": "npm run build && tsc -p test/types/tsconfig.core.json && tsc -p test/types/tsconfig.json && node scripts/check-published-types.js",
+    "prepack": "npm run build",
     "postversion": "git push --follow-tags"
+  },
+  "peerDependencies": {
+    "@types/express-serve-static-core": "*",
+    "next": "*"
+  },
+  "peerDependenciesMeta": {
+    "@types/express-serve-static-core": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -40,6 +100,7 @@
     "eslint-plugin-n": "^17.24.0",
     "mocha": "^11.7.5",
     "next": "^16.2.4",
-    "sinon": "^21.1.2"
+    "sinon": "^21.1.2",
+    "typescript": "^6.0.3"
   }
 }

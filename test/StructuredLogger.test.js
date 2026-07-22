@@ -1388,6 +1388,178 @@ describe('StructuredLogger', function () {
                }
             })
          })
+
+         it('should not carry err.user through (the request context is authoritative)', function () {
+            const req = make()
+            const log = logger._requestChild(req)
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const error = new Error()
+            error.user = 'ERR_USER'
+            log.reportError(error)
+
+            const data = writeSpy.lastCall.lastArg
+            // httpRequest is present, but an err.user is not surfaced as context.user
+            assert.nestedProperty(data, 'context.httpRequest')
+            assert.notNestedProperty(data, 'context.user')
+         })
+
+         it('should build context from a raw request with plain-object headers (no Express get)', function () {
+            const traceId = '59973d340da5c40f77349df948ef7531'
+            const spanId = 288377245651
+            // A raw Node-style request: plain-object headers, no Express `get` and no WHATWG `Headers`
+            const req = {
+               method: 'POST',
+               url: '/raw',
+               headers: {
+                  'x-cloud-trace-context': `${traceId}/${spanId}`,
+                  'user-agent': 'raw-agent',
+                  // A multi-value header arrives as an array on a raw Node request
+                  'x-forwarded-for': ['10.0.0.1', '10.0.0.2'],
+               },
+            }
+            const log = logger._requestChild(req)
+
+            // Trace was extracted from the plain-object header
+            assert.nestedPropertyVal(log, '_trace.trace', `projects/${projectId}/traces/${traceId}`)
+
+            const writeSpy = sinon.spy(log, '_write')
+            assert.doesNotThrow(() => log.reportError('Error string'))
+
+            assert.deepNestedPropertyVal(writeSpy.lastCall.lastArg, 'context.httpRequest', {
+               method: 'POST',
+               url: '/raw',
+               userAgent: 'raw-agent',
+               remoteIp: '10.0.0.1',
+            })
+         })
+      })
+   })
+
+   context('StructuredContextLogger', function () {
+
+      /** @type {InstanceType<loggers['StructuredLogger']>} */
+      let logger
+
+      before(function () {
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
+      })
+
+      it('should be a StructuredTracedLogger but not a StructuredRequestLogger', function () {
+         const log = logger._contextChild({})
+         assert.instanceOf(log, loggers.StructuredContextLogger)
+         assert.instanceOf(log, loggers.StructuredTracedLogger)
+         assert.notInstanceOf(log, loggers.StructuredRequestLogger)
+      })
+
+      it('should carry trace, labels and context', function () {
+         const trace = { trace: `projects/${projectId}/traces/abc`, spanId: '1', traceSampled: true }
+         const httpRequest = { method: 'GET', url: '/x' }
+         const log = logger._contextChild({ trace, httpRequest, user: 'U', labels: { type: 'bolt' } })
+         assert.deepPropertyVal(log, '_trace', trace)
+         assert.deepPropertyVal(log, '_labels', { log_name: logName, type: 'bolt' })
+         assert.deepPropertyVal(log, '_context', { httpRequest, user: 'U' })
+      })
+
+      describe('#child', function () {
+
+         it('should return a StructuredContextLogger carrying trace and context', function () {
+            const trace = { trace: `projects/${projectId}/traces/abc`, spanId: '1', traceSampled: true }
+            const httpRequest = { method: 'GET', url: '/x' }
+            const log = logger._contextChild({ trace, httpRequest, user: 'U', labels: { type: 'bolt' } })
+
+            const l = log.child('CHILD')
+
+            assert.instanceOf(l, loggers.StructuredContextLogger)
+            assert.deepPropertyVal(l, '_trace', trace)
+            assert.deepPropertyVal(l, '_labels', { log_name: logName, type: 'CHILD' })
+            assert.deepPropertyVal(l, '_context', { httpRequest, user: 'U' })
+         })
+      })
+
+      describe('#reportError', function () {
+
+         it('should include httpRequest and user context from plain values', function () {
+            const httpRequest = { method: 'POST', url: '/slack', userAgent: 'UA' }
+            const log = logger._contextChild({ httpRequest, user: 'U123' })
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            log.reportError('Error string')
+
+            assert.deepNestedPropertyVal(writeSpy.lastCall.lastArg, 'context', { httpRequest, user: 'U123' })
+         })
+
+         it('should resolve thunks lazily at report time', function () {
+            let statusCode = 200
+            const httpRequest = () => ({ method: 'GET', url: '/x', responseStatusCode: statusCode })
+            const user = sinon.stub().returns('LAZY')
+            const log = logger._contextChild({ httpRequest, user })
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            // Change status after building the logger, before reporting - the thunk should see it
+            statusCode = 503
+            log.reportError(new Error('boom'))
+
+            const data = writeSpy.lastCall.lastArg
+            assert.deepNestedPropertyVal(data, 'context.httpRequest', { method: 'GET', url: '/x', responseStatusCode: 503 })
+            assert.nestedPropertyVal(data, 'context.user', 'LAZY')
+            sinon.assert.calledOnce(user)
+         })
+
+         it('should drop context when empty', function () {
+            const log = logger._contextChild({})
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            log.reportError('Error string')
+
+            assert.notProperty(writeSpy.lastCall.lastArg, 'context')
+         })
+
+         it('should ignore a user thunk that returns no value', function () {
+            const httpRequest = { method: 'GET', url: '/x' }
+            const log = logger._contextChild({ httpRequest, user: () => '' })
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            log.reportError('Error string')
+
+            const data = writeSpy.lastCall.lastArg
+            assert.deepNestedPropertyVal(data, 'context', { httpRequest })
+            assert.notNestedProperty(data, 'context.user')
+         })
+
+         it('should produce the same context as a request logger (Express ≡ Bolt parity)', function () {
+            const { requestToErrorReportingHttpRequest } = require('../src/request-transformers')
+            const USER = 'A_USER'
+            const req = make({ method: 'POST', originalUrl: 'http://localhost:3000/path', ips: ['127.0.0.1', '30.0.0.0'], headers: { 'user-agent': 'some-user-agent', referrer: 'http://localhost:3001/website' }, res: { statusCode: 400 } })
+
+            const requestLog = logger._requestChild(req, () => USER)
+            const requestWrite = sinon.spy(requestLog, '_write')
+            requestLog.reportError('Error string')
+
+            // Build an equivalent logger from plain data, as a Bolt adapter would
+            const contextLog = logger._contextChild({ httpRequest: requestToErrorReportingHttpRequest(req), user: USER })
+            const contextWrite = sinon.spy(contextLog, '_write')
+            contextLog.reportError('Error string')
+
+            assert.deepStrictEqual(contextWrite.lastCall.lastArg.context, requestWrite.lastCall.lastArg.context)
+         })
+
+         it('should let a context user override err.user', function () {
+            const log = logger._contextChild({ user: 'CONTEXT_USER' })
+
+            const writeSpy = sinon.spy(log, '_write')
+
+            const err = new Error('boom')
+            err.user = 'ERR_USER'
+            log.reportError(err)
+
+            assert.nestedPropertyVal(writeSpy.lastCall.lastArg, 'context.user', 'CONTEXT_USER')
+         })
       })
    })
 })

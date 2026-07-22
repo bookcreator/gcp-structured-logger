@@ -374,4 +374,51 @@ describe('request-transformers', function () {
          })
       })
    })
+
+   context('raw request', function () {
+      // A structural request exposing plain-object `headers` (already
+      // lower-cased keys) with no Express-style `get` accessor and no WHATWG
+      // `Headers`, plus the degenerate case where `headers` is absent entirely
+      // (the `Request` typedef makes it optional).
+      const base = {
+         url,
+         method,
+      }
+
+      context('.getHeader', function () {
+
+         it('should return header from plain-object headers', function () {
+            const req = {
+               ...base,
+               headers: {
+                  'user-agent': 'UA'
+               }
+            }
+            assert.strictEqual(getHeader(req, 'User-Agent'), 'UA')
+         })
+
+         it('should join array-valued headers', function () {
+            const req = {
+               ...base,
+               headers: {
+                  'x-forwarded-for': ['127.0.0.1', '10.0.0.0']
+               }
+            }
+            assert.strictEqual(getHeader(req, 'x-forwarded-for'), '127.0.0.1, 10.0.0.0')
+         })
+
+         it('should return no header for missing value', function () {
+            const req = {
+               ...base,
+               headers: {}
+            }
+            assert.isUndefined(getHeader(req, 'user-agent'))
+         })
+
+         it('should return no header when headers are absent', function () {
+            const req = { ...base }
+            assert.isUndefined(getHeader(req, 'user-agent'))
+         })
+      })
+   })
 })

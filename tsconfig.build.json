@@ -1,0 +1,17 @@
+{
+   "extends": "./jsconfig.json",
+   "compilerOptions": {
+      "noEmit": false,
+      "allowJs": true,
+      "declaration": true,
+      "emitDeclarationOnly": true,
+      "outDir": "types"
+   },
+   "include": [
+      "index.js",
+      "express.js",
+      "next.js",
+      "context.js",
+      "src/**/*.js"
+   ]
+}

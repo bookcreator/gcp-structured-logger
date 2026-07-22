@@ -1,17 +1,17 @@
 const { getUrl, getHeader, getProtocol, getRemoteIp, getResponse } = require('./request-properties')
 
-/** @typedef {import('./StructuredLogger').Request} Request */
+/** @typedef {import('./types').Request} Request */
 
 /**
  * Converts a request (and its attached response) to a `HttpRequest` for Stackdriver `LogEntry`.
  *
  * @param {Request} req
- * @returns {import('../').LoggingHttpRequest}
+ * @returns {import('./types').LoggingHttpRequest}
  */
 function requestToHttpRequest(req) {
    // Copy from reporting
    const { url, method, responseStatusCode, referrer, ...reportingReq } = requestToErrorReportingHttpRequest(req)
-   /** @type {import('../').LoggingHttpRequest} */
+   /** @type {import('./types').LoggingHttpRequest} */
    const httpReq = {
       requestUrl: url,
       requestMethod: method,
