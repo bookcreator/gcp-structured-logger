@@ -1,5 +1,21 @@
 const { types, inspect } = require('util')
 
+/** @type {any[]} */
+const TYPES_TO_IGNORE_INSPECT_CUSTOM = [
+   // Don't want to use Headers default inspect method as it stringifies to `Headers {}` which is not very useful
+   Headers,
+]
+
+/** @param {any} obj */
+function canUseCustomInspect(obj) {
+   if (typeof obj[inspect.custom] !== 'function') return false
+   // If we've got one check we're not ignoring it
+   for (const type of TYPES_TO_IGNORE_INSPECT_CUSTOM) {
+      if (obj instanceof type) return false
+   }
+   return true
+}
+
 /**
  * Replaces:
  * * `Date`s with `Date#toISOString()`
@@ -35,8 +51,8 @@ module.exports = function cleanupForJSON(obj) {
       if (_obj !== null && typeof _obj === 'object') {
          // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
          if (typeof _obj.toJSON === 'function') return convert(_obj.toJSON(parentKey), parentKey)
-         // Use custom inspect method if present
-         if (typeof _obj[inspect.custom] === 'function') return convert(_obj[inspect.custom](inspect.defaultOptions.depth, inspect.defaultOptions, inspect), parentKey)
+         // Use custom inspect method
+         if (canUseCustomInspect(_obj)) return convert(_obj[inspect.custom](inspect.defaultOptions.depth, inspect.defaultOptions, inspect), parentKey)
          // Check if we've seen this reference before
          if (seenRefs.has(_obj)) return '[Circular]'
 

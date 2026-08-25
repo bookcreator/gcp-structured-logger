@@ -595,5 +595,25 @@ describe('cleanup-for-json', function () {
          })
          assert.deepStrictEqual(cleanupForJSON(v), [{ key: 'key', value: null }])
       })
+
+      context('Specific object types', function () {
+
+         it('should serialise Headers object with unique keys', function () {
+            const object = new Headers({ foo: 'bar', ahello: 'world' })
+            assert.deepStrictEqual(cleanupForJSON(object), [['ahello', 'world'], ['foo', 'bar']])
+         })
+
+         it('should serialise Headers object with duplicate keys', function () {
+            const object = new Headers([['foo', 'bar1'], ['ahello', 'world'], ['foo', 'bar2']])
+            assert.deepStrictEqual(cleanupForJSON(object), [['ahello', 'world'], ['foo', 'bar1, bar2']])
+         })
+
+         it('should serialise Headers object with duplicate set-cookie keys', function () {
+            const object = new Headers([['set-cookie', 'bar2'], ['hello', 'world'], ['set-cookie', 'bar1']])
+            // Should be listed in added order
+            assert.deepStrictEqual(object.getSetCookie(), ['bar2', 'bar1'])
+            assert.deepStrictEqual(cleanupForJSON(object), [['hello', 'world'], ['set-cookie', 'bar2'], ['set-cookie', 'bar1']])
+         })
+      })
    })
 })

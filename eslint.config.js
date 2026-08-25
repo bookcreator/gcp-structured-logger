@@ -75,7 +75,10 @@ module.exports = defineConfig([
                   'balanced': true
                }
             }
-         ]
+         ],
+         'n/no-unsupported-features/node-builtins': ['error', {
+            ignores: ['Headers']
+         }]
       }
    },
    {
