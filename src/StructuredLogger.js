@@ -35,8 +35,8 @@ class StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport?} productionTransport
-    * @param {{ [key: string]: string }} labels
+    * @param {import('../').Transport | undefined} productionTransport
+    * @param {{ [key: string]: string } | undefined} labels
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels) {
       /** @readonly @private */
@@ -80,7 +80,7 @@ class StructuredLogger {
    /**
     * @protected
     * @param {Request} request
-    * @param {import('../').ExtractUser?} extractUser
+    * @param {import('../').ExtractUser | undefined} extractUser
     */
    _requestChild(request, extractUser) {
       return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
@@ -230,6 +230,7 @@ class StructuredLogger {
    /** @param {any[]} args */
    trace(...args) {
       const now = nowNS()
+      /** @type {{ name: string, stack?: string }} */
       const trace = { name: args.length === 0 ? 'Trace' : '' }
       Error.captureStackTrace(trace, this.trace)
       this._writeFormatted('DEBUG', [...args, trace.stack], now)
@@ -493,8 +494,8 @@ class StructuredTracedLogger extends StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport} productionTransport
-    * @param {{ [key: string]: string }} labels
+    * @param {import('../').Transport | undefined} productionTransport
+    * @param {{ [key: string]: string } | undefined} labels
     * @param {Partial<import('../').TraceContext>} trace
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, trace) {
@@ -529,10 +530,10 @@ class StructuredRequestLogger extends StructuredTracedLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
-    * @param {import('../').Transport} productionTransport
-    * @param {{ [key: string]: string }} labels
+    * @param {import('../').Transport | undefined} productionTransport
+    * @param {{ [key: string]: string } | undefined} labels
     * @param {Request} request
-    * @param {import('../').ExtractUser?} extractUser
+    * @param {import('../').ExtractUser | undefined} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
       super(projectId, logName, serviceContext, productionTransport, labels, extractTraceContext(projectId, request) ?? {})

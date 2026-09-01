@@ -77,7 +77,7 @@ module.exports = function cleanupForJSON(obj) {
             if (name === 'AggregateError' || _obj instanceof AggregateError) props.errors = _obj.errors
             val = convert({ ...props, name, stack, message, cause }, parentKey)
          } else {
-            val = {}
+            val = /** @type {{ [key: string]: any }} */({})
             for (const k in _obj) val[k] = convert(_obj[k], k)
          }
          seenRefs.delete(_obj)

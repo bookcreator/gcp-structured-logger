@@ -23,13 +23,13 @@ function extractTraceContext(projectId, req) {
    let spanId
    /** @type {number} */
    let flagsValue = 0
-   const traceparent = /** @type {{ traceId: string, spanId: string, flags: string } | undefined} */(TRACEPARENT_HEADER_FORMAT_V0.exec(getHeader(req, TRACEPARENT_HEADER_NAME))?.groups)
+   const traceparent = /** @type {{ traceId: string, spanId: string, flags: string } | undefined} */(TRACEPARENT_HEADER_FORMAT_V0.exec(getHeader(req, TRACEPARENT_HEADER_NAME) ?? '')?.groups)
    if (traceparent) {
       traceId = traceparent.traceId
       spanId = `0x${traceparent.spanId}`
       flagsValue = Number.parseInt(traceparent.flags, 16)
    }
-   const cloudTraceContext = /** @type {{ traceId: string, spanId: string, sampled?: '0' | '1' }} */(CLOUD_TRACE_CONTEXT_HEADER_FORMAT.exec(getHeader(req, CLOUD_TRACE_CONTEXT_HEADER_NAME))?.groups)
+   const cloudTraceContext = /** @type {{ traceId: string, spanId: string, sampled?: '0' | '1' }} */(CLOUD_TRACE_CONTEXT_HEADER_FORMAT.exec(getHeader(req, CLOUD_TRACE_CONTEXT_HEADER_NAME) ?? '')?.groups)
    if (cloudTraceContext) {
       ({ traceId, spanId } = cloudTraceContext)
       if (cloudTraceContext.sampled !== '0') flagsValue = 0b00000001 // Convert to newer flags format

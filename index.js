@@ -89,9 +89,14 @@ class Logging {
     */
    attachToProcess(loggingTo) {
 
+      /** @param {unknown} reason */
       const onUnhandledRejection = reason => {
          loggingTo.reportError(reason, LogSeverity.WARNING)
       }
+      /**
+       * @param {Error & { uncaughtExceptionType?: NodeJS.UncaughtExceptionOrigin }} err
+       * @param {NodeJS.UncaughtExceptionOrigin} origin
+       */
       const onUncaughtException = (err, origin) => {
          err.uncaughtExceptionType = origin
          loggingTo.reportError(err)
