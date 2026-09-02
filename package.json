@@ -2,12 +2,21 @@
   "name": "gcp-structured-logger",
   "version": "3.1.8",
   "description": "Structured logger for GCP logging",
-  "main": "index.js",
   "files": [
     "src/**/*.js",
-    "index.d.ts"
+    "index.d.ts",
+    "express.d.ts"
   ],
-  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "default": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./express": {
+      "default": "./index.js",
+      "types": "./express.d.ts"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bookcreator/gcp-structured-logger.git"

@@ -1,13 +1,12 @@
-/// <reference types="express-serve-static-core" />
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Http2ServerRequest, Http2ServerResponse, ServerHttp2Stream, IncomingHttpHeaders, IncomingHttpStatusHeader } from 'node:http2';
-import type { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-static-core';
-import type { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger } from './src/StructuredLogger';
+import type { StructuredLogger as _StructuredLogger, StructuredTracedLogger, StructuredRequestLogger as _StructuredRequestLogger } from './src/StructuredLogger';
 import { LogSeverity } from "./src/severity";
 import { requestToHttpRequest } from "./src/request-transformers";
 import { extractTraceContext } from "./src/trace-context";
 
-export type StructuredLogger = StructuredLogger;
-export type StructuredRequestLogger = StructuredRequestLogger;
+export type StructuredLogger = _StructuredLogger;
+export type StructuredRequestLogger = _StructuredRequestLogger;
 
 /** @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#httprequest */
 export interface LoggingHttpRequest {
@@ -54,9 +53,9 @@ export interface ServiceContext {
    service: string;
    version?: string;
 }
-export type ExtractUser = (req: Request) => string | null | void;
+export type ExtractUser<Req extends IncomingMessage> = (req: Req) => string | null | void;
 export type Transport = (entry: TransportLogEntry, data: string | { message?: string, [k: string]: any }) => void;
-export interface LoggingConfig {
+export interface LoggingConfig<Req extends IncomingMessage = IncomingMessage> {
    /** GCP project ID. */
    projectId: string;
    /** Used for `log_name` label. */
@@ -64,7 +63,7 @@ export interface LoggingConfig {
    /** Used for error reporting. */
    serviceContext: ServiceContext;
    /** Optional function to get a user from a request to apply to error reports. */
-   requestUserExtractor?: ExtractUser;
+   requestUserExtractor?: ExtractUser<Req>;
    /** Extra labels to apply to all logs. */
    extraLabels?: {
       [labelName: string]: string;
@@ -73,13 +72,13 @@ export interface LoggingConfig {
    productionTransport?: Transport;
 }
 
-export class Logging {
-   constructor(config: LoggingConfig);
+export class Logging<Req extends IncomingMessage = IncomingMessage, Res extends ServerResponse = ServerResponse> {
+   constructor(config: LoggingConfig<Req>);
    readonly logger: StructuredLogger;
    makeTracedLogger(trace: { traceId: string, spanId?: string, sampled?: boolean }): StructuredTracedLogger;
-   makeLoggingMiddleware(): RequestHandler;
+   makeLoggingMiddleware(): (req: Req, res: Res, next: () => void) => void;
    /** This should be attached after adding the result of `makeLoggingMiddleware`. */
-   makeErrorMiddleware(): ErrorRequestHandler;
+   makeErrorMiddleware(): (err: any, req: Req, res: Res, next: () => void) => void;
    http2RequestListener(listener: (req: Http2ServerRequestWithLog, res: Http2ServerResponse) => void): (req: Http2ServerRequest, res: Http2ServerResponse) => void;
    http2StreamListener(listener: (stream: ServerHttp2StreamWithLog, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void): (stream: ServerHttp2Stream, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void;
    /** @returns A function to call to detach from the process. */
@@ -92,15 +91,6 @@ export interface Http2ServerRequestWithLog extends Http2ServerRequest {
 
 export interface ServerHttp2StreamWithLog extends ServerHttp2Stream {
    readonly log: StructuredRequestLogger;
-}
-
-// Add in support for a .log property on an Express request
-declare global {
-   namespace Express {
-      interface Request {
-         readonly log: StructuredRequestLogger;
-      }
-   }
 }
 
 export { requestToHttpRequest, extractTraceContext, LogSeverity };

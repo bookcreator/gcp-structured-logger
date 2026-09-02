@@ -43,17 +43,19 @@ class Logging {
 
    /**
     * This should be attached after adding the result of `makeLoggingMiddleware`
-    * @returns  {import('express-serve-static-core').ErrorRequestHandler}
+    * @returns {import('express-serve-static-core').ErrorRequestHandler}
     */
    makeErrorMiddleware() {
-      return (err, /** @type {import('express-serve-static-core').Request} */ req, res, next) => {
+      return (err, req, res, next) => {
          const self = this
          // Log client errors (400) as warnings
          const asWarning = (err.statusCode || err.status) < 500
          // Report after request finished so the error gets the final status code
          const resFinishedCleanup = finished(res, function onResponseFinished() {
             resFinishedCleanup()
-            const log = req.log || self._makeRequestLog(req)
+            /** @import * as _ from './express' */
+            // In case we've never called makeLoggingMiddleware on this app/route, create a new one
+            const log = req.log ?? self._makeRequestLog(req)
             log.reportError(err, asWarning ? LogSeverity.WARNING : undefined)
          })
          next(err)
