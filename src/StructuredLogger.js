@@ -27,7 +27,7 @@ const LOG_ENTRY_MAPPING = {
    message: false,
 }
 
-/** @typedef {import('express-serve-static-core').Request | import('next/server').NextRequest | import('./http2-request-headers').Http2RequestHeaders} Request */
+/** @typedef {(import('node:http').IncomingMessage & { url: string, method: string }) | import('./http2-request-headers').Http2RequestHeaders} Request */
 
 class StructuredLogger {
 

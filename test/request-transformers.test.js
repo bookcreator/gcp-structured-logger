@@ -13,11 +13,12 @@ describe('request-transformers', function () {
                return this.headers[name]
             }
          }
-      }
+      },
+      socket: {},
    })
 
    describe('.httpRequest', function () {
-      const url = 'https://url.com'
+      const url = 'http://url.com'
       const method = 'GET'
       const httpVersion = '1.0'
       const base = {
@@ -31,6 +32,7 @@ describe('request-transformers', function () {
             ...base
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
          })
@@ -42,6 +44,7 @@ describe('request-transformers', function () {
             ip: '127.0.0.1'
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
             remoteIp: '127.0.0.1',
@@ -56,6 +59,7 @@ describe('request-transformers', function () {
             }
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
             userAgent: 'UA',
@@ -70,6 +74,7 @@ describe('request-transformers', function () {
             }
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
             referer: 'https://google.com',
@@ -84,6 +89,7 @@ describe('request-transformers', function () {
             }
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
             requestSize: 123,
@@ -105,9 +111,10 @@ describe('request-transformers', function () {
       it('should include status from req.res', function () {
          const req = make({
             ...base,
-            res: make({ statusCode: 200 })
+            res: { statusCode: 200 },
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
             status: 200,
@@ -117,17 +124,16 @@ describe('request-transformers', function () {
       it('should include responseSize from req.res', function () {
          const req = make({
             ...base,
-            res: make({
-               statusCode: 202,
-               headers: {
-                  'content-length': 567
+            res: {
+               getHeader: (name) => {
+                  if (name === 'content-length') return '567'
                }
-            })
+            }
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
+            protocol: `http/${httpVersion}`,
             requestUrl: url,
             requestMethod: method,
-            status: 202,
             responseSize: 567,
          })
       })
@@ -194,7 +200,7 @@ describe('request-transformers', function () {
       it('should include responseStatusCode from req.res', function () {
          const req = make({
             ...base,
-            res: make({ statusCode: 201 })
+            res: { statusCode: 201 },
          })
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {
             url,

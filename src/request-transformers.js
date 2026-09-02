@@ -29,10 +29,10 @@ function requestToHttpRequest(req) {
    if (requestSize !== undefined) httpReq.requestSize = parseInt(requestSize)
 
    const res = getResponse(req)
-   if (res) {
+   if (res?.getHeader) {
       // Response info
-      const responseSize = res.get('content-length')
-      if (responseSize !== undefined) httpReq.responseSize = parseInt(responseSize)
+      const responseSize = /** @type {string | undefined} */(res.getHeader('content-length'))
+      if (responseSize) httpReq.responseSize = parseInt(responseSize)
    }
 
    return httpReq

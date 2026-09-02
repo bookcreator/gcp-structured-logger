@@ -1,8 +1,6 @@
 /// <reference types="express-serve-static-core" />
-/// <reference types="next" />
 import type { Http2ServerRequest, Http2ServerResponse, ServerHttp2Stream, IncomingHttpHeaders, IncomingHttpStatusHeader } from 'node:http2';
 import type { Request, RequestHandler, ErrorRequestHandler } from 'express-serve-static-core';
-import type { NextRequest as _NextRequest } from 'next/server'
 import type { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger } from './src/StructuredLogger';
 import { LogSeverity } from "./src/severity";
 import { requestToHttpRequest } from "./src/request-transformers";
@@ -56,7 +54,7 @@ export interface ServiceContext {
    service: string;
    version?: string;
 }
-export type ExtractUser = (req: Request | _NextRequest) => string | null | void;
+export type ExtractUser = (req: Request) => string | null | void;
 export type Transport = (entry: TransportLogEntry, data: string | { message?: string, [k: string]: any }) => void;
 export interface LoggingConfig {
    /** GCP project ID. */
@@ -84,7 +82,6 @@ export class Logging {
    makeErrorMiddleware(): ErrorRequestHandler;
    http2RequestListener(listener: (req: Http2ServerRequestWithLog, res: Http2ServerResponse) => void): (req: Http2ServerRequest, res: Http2ServerResponse) => void;
    http2StreamListener(listener: (stream: ServerHttp2StreamWithLog, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void): (stream: ServerHttp2Stream, headers: IncomingHttpHeaders & IncomingHttpStatusHeader, flags: number, rawHeaders: string[]) => void;
-   nextJSMiddleware(req: _NextRequest): void;
    /** @returns A function to call to detach from the process. */
    attachToProcess(loggingTo: StructuredLogger): () => void;
 }
@@ -103,10 +100,6 @@ declare global {
       interface Request {
          readonly log: StructuredRequestLogger;
       }
-   }
-
-   declare interface NextRequest extends _NextRequest {
-      readonly log: StructuredRequestLogger;
    }
 }
 

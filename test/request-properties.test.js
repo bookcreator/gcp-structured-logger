@@ -3,7 +3,7 @@ const { constants: http2 } = require('node:http2')
 const { assert } = require('chai')
 const { getUrl, getHeader, getProtocol, getRemoteIp, getResponse } = require('../src/request-properties')
 
-describe('request-transformers', function () {
+describe('request-properties', function () {
 
    const url = 'https://url.com'
    const method = 'GET'
@@ -14,6 +14,7 @@ describe('request-transformers', function () {
          originalUrl: url,
          method,
          httpVersion,
+         socket: {},
       }
 
       /** @param {Partial<import('express-serve-static-core').Request>} obj */
@@ -25,15 +26,17 @@ describe('request-transformers', function () {
                   return this.headers[name]
                }
             }
-         }
+         },
+         headers: { ...obj.headers },
       })
 
       context('.getUrl', function () {
 
-         it('should return url', function () {
+         it('should return originalUrl', function () {
             const req = make({
                ...base,
-               url: url + '/rewritten'
+               url: url + '/rewritten',
+               originalUrl: url,
             })
             assert.strictEqual(getUrl(req), url)
          })
@@ -63,14 +66,14 @@ describe('request-transformers', function () {
 
       context('.getProtocol', function () {
 
-         it('should return no protocol', function () {
+         it('should return HTTP', function () {
             const req = make({
                ...base,
             })
-            assert.isUndefined(getProtocol(req))
+            assert.strictEqual(getProtocol(req), 'http/' + httpVersion)
          })
 
-         it('should return protocol with HTTP version', function () {
+         it('should return HTTPS', function () {
             const req = make({
                ...base,
                protocol: 'https'
@@ -111,10 +114,119 @@ describe('request-transformers', function () {
          it('should return value derived from req.ips', function () {
             const req = make({
                ...base,
-               ips: ['127.0.0.1']
+               ips: ['127.0.0.1', '1.1.1.1']
             })
             assert.strictEqual(getRemoteIp(req), '127.0.0.1')
          })
+
+         it('should return value derived from x-forwarded-for header', function () {
+            const req = make({
+               ...base,
+               headers: {
+                  'x-forwarded-for': '127.0.0.1'
+               }
+            })
+            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
+         })
+      })
+   })
+
+   context('NodeJS.IncomingMessage', function () {
+      const httpVersion = '1.0'
+      const base = {
+         url,
+         method,
+         httpVersion,
+         socket: {},
+      }
+
+      /** @param {Partial<import('http').IncomingMessage>} obj */
+      const make = (obj = { headers: {} }) => ({
+         ...obj,
+         headers: { ...obj.headers },
+      })
+
+      context('.getUrl', function () {
+
+         it('should return url', function () {
+            const req = make({
+               ...base,
+            })
+            assert.strictEqual(getUrl(req), url)
+         })
+      })
+
+      context('.getHeader', function () {
+
+         it('should return header', function () {
+            const req = make({
+               ...base,
+               headers: {
+                  'user-agent': 'UA'
+               }
+            })
+            assert.strictEqual(getHeader(req, 'user-agent'), 'UA')
+         })
+
+         it('should return no header for missing value', function () {
+            const req = make({
+               ...base,
+               headers: {
+               }
+            })
+            assert.isUndefined(getHeader(req, 'user-agent'))
+         })
+      })
+
+      context('.getProtocol', function () {
+
+         it('should return HTTP', function () {
+            const req = make({
+               ...base,
+            })
+            assert.strictEqual(getProtocol(req), 'http/' + httpVersion)
+         })
+
+         it('should return HTTPS', function () {
+            const req = make({
+               ...base,
+               socket: { encrypted: true },
+            })
+            assert.strictEqual(getProtocol(req), 'https/' + httpVersion)
+         })
+
+         it('should use x-forwarded-proto header', function () {
+            const req = make({
+               ...base,
+               headers: {
+                  'x-forwarded-proto': 'https',
+               }
+            })
+            assert.strictEqual(getProtocol(req), 'https/' + httpVersion)
+         })
+
+         it('should use malformed x-forwarded-proto header with multiple values', function () {
+            const req = make({
+               ...base,
+               headers: {
+                  'x-forwarded-proto': 'https , http',
+               }
+            })
+            assert.strictEqual(getProtocol(req), 'https/' + httpVersion)
+         })
+      })
+
+      context('.getResponse', function () {
+
+         it('should return no response', function () {
+            const req = make({
+               ...base,
+            })
+            assert.isUndefined(getResponse(req))
+         })
+      })
+
+      context('.getRemoteIp', function () {
 
          it('should return value derived from x-forwarded-for header', function () {
             const req = make({
@@ -133,7 +245,7 @@ describe('request-transformers', function () {
                   'x-forwarded-for': '127.0.0.1, 10.0.0.0'
                }
             })
-            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
+            assert.strictEqual(getRemoteIp(req), '10.0.0.0')
          })
 
          it('should not return value derived from x-forwarded-for headers', function () {
@@ -159,7 +271,6 @@ describe('request-transformers', function () {
    })
 
    context('Http2RequestHeaders', function () {
-      const httpVersion = '1.0'
       const base = {
          path: '/url.com',
          method: 'GET',
@@ -236,7 +347,7 @@ describe('request-transformers', function () {
             const req = make({}, {
                'x-forwarded-for': '127.0.0.1, 10.0.0.0'
             })
-            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
+            assert.strictEqual(getRemoteIp(req), '10.0.0.0')
          })
 
          it('should not return value derived from x-forwarded-for headers', function () {
@@ -248,128 +359,6 @@ describe('request-transformers', function () {
 
          it('should return nothing when no x-forwarded-for header is present', function () {
             const req = make()
-            assert.isUndefined(getRemoteIp(req))
-         })
-      })
-   })
-
-   context('next.NextRequest', function () {
-      const base = {
-         url,
-         method,
-      }
-
-      /** @param {Partial<import('next/server').NextRequest>} obj */
-      const make = ({ headers, ...obj } = { headers: {} }) => ({
-         ...obj,
-         get headers() {
-            return {
-               has(name) {
-                  for (const n in headers) {
-                     if (typeof name === 'string' && name.toLowerCase() === n.toLowerCase()) return true
-                  }
-                  return false
-               },
-               get(name) {
-                  for (const n in headers) {
-                     if (typeof name === 'string' && name.toLowerCase() === n.toLowerCase()) {
-                        return headers[n]
-                     }
-                  }
-               }
-            }
-         }
-      })
-
-      context('.getUrl', function () {
-
-         it('should return url', function () {
-            const req = make({
-               ...base,
-            })
-            assert.strictEqual(getUrl(req), url)
-         })
-      })
-
-      context('.getHeader', function () {
-
-         it('should return header', function () {
-            const req = make({
-               ...base,
-               headers: {
-                  'user-agent': 'UA'
-               }
-            })
-            assert.strictEqual(getHeader(req, 'user-agent'), 'UA')
-         })
-
-         it('should return no header for missing value', function () {
-            const req = make({
-               ...base,
-               headers: {
-               }
-            })
-            assert.isUndefined(getHeader(req, 'user-agent'))
-         })
-      })
-
-      context('.getProtocol', function () {
-
-         it('should return no protocol', function () {
-            const req = make({
-               ...base,
-            })
-            assert.isUndefined(getProtocol(req))
-         })
-      })
-
-      context('.getResponse', function () {
-
-         it('should return no response', function () {
-            const req = make({
-               ...base,
-            })
-            assert.isUndefined(getResponse(req))
-         })
-      })
-
-      context('.getRemoteIp', function () {
-
-         it('should not return value derived from req.ip', function () {
-            const req = make({
-               ...base,
-               ip: '127.0.0.1'
-            })
-            assert.isUndefined(getRemoteIp(req))
-         })
-
-         it('should return value derived from x-forwarded-for header', function () {
-            const req = make({
-               ...base,
-               headers: {
-                  'x-forwarded-for': '127.0.0.1'
-               }
-            })
-            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
-         })
-
-         it('should return value derived from x-forwarded-for headers (multiple values)', function () {
-            const req = make({
-               ...base,
-               headers: {
-                  'x-forwarded-for': '127.0.0.1, 10.0.0.0'
-               }
-            })
-            assert.strictEqual(getRemoteIp(req), '127.0.0.1')
-         })
-
-         it('should not return value derived from x-forwarded-for headers', function () {
-            const req = make({
-               ...base,
-               headers: {
-                  'x-forwarded-for': ''
-               }
-            })
             assert.isUndefined(getRemoteIp(req))
          })
       })

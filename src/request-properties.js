@@ -1,4 +1,4 @@
-/** @typedef {import('./StructuredLogger').Request} Request */
+/** @typedef {import('./StructuredLogger').Request | import('express-serve-static-core').Request} Request */
 
 /**
  * @param {Request} req
@@ -15,8 +15,7 @@ module.exports.getHeader = (req, name) => {
    if ('get' in req) {
       return req.get(name)
    } else {
-      const r = /** @type {import('next/server').NextRequest} */ (req)
-      return r.headers.has(name) ? /** @type {string} */(r.headers.get(name)) : undefined
+      return /** @type {string | undefined} */(req.headers[name])
    }
 }
 
@@ -25,8 +24,27 @@ module.exports.getHeader = (req, name) => {
  * @returns {string | undefined}
  */
 module.exports.getProtocol = (req) => {
-   if ('protocol' in req && req.protocol) return req.protocol + '/' + req.httpVersion
    if ('http2Protocol' in req) return req.http2Protocol
+
+   /** @type {string} */
+   let proto
+   if ('protocol' in req && req.protocol) {
+      // Express request - this handles the x-forwarded-proto header for you
+      proto = req.protocol
+   } else {
+      const socket = /** @type {import('node:net').Socket | import('node:tls').TLSSocket} */(req.socket)
+      proto = 'encrypted' in socket && socket.encrypted ? 'https' : 'http'
+
+      const headerProto = this.getHeader(req, 'x-forwarded-proto')
+      if (headerProto) {
+         // X-Forwarded-Proto should only ever a single value but just in case...
+         const index = headerProto.indexOf(',')
+         const p = (index !== -1 ? headerProto.substring(0, index) : headerProto).trim()
+         if (p) proto = p.toLowerCase()
+      }
+   }
+
+   return proto + '/' + req.httpVersion
 }
 
 /**
@@ -34,9 +52,13 @@ module.exports.getProtocol = (req) => {
  * @returns {string | undefined}
  */
 module.exports.getRemoteIp = (req) => {
-   if ('originalUrl' in req) {
+   if ('ip' in req) {
       // Express request - this handles the x-forwarded header for you
-      const ip = req.ip || (Array.isArray(req.ips) ? req.ips[0] : undefined)
+      if (req.ip) return req.ip
+   }
+   if ('ips' in req) {
+      // Express request - this handles the x-forwarded header for you
+      const ip = req.ips[0]
       if (ip) return ip
    }
    // If we're in NextJS land (or IPs failed to resolve) use the forwarded header
@@ -44,7 +66,7 @@ module.exports.getRemoteIp = (req) => {
    if (headerIps) {
       // Prevent DoS attacks for massive headers (allow at the most 64 IPs in the header)
       if (headerIps.length <= 1_024) {
-         const ip = headerIps.split(/\s*,\s*/)[0]
+         const ip = headerIps.split(/\s*,\s*/).at(-1)
          if (ip) return ip
       }
    }
@@ -52,8 +74,8 @@ module.exports.getRemoteIp = (req) => {
 
 /**
  * @param {Request} req
- * @returns {import('express-serve-static-core').Response | undefined}
+ * @returns {import('node:http').ServerResponse | undefined}
  */
 module.exports.getResponse = (req) => {
-   if ('res' in req && req.res) return req.res
+   if ('res' in req) return req.res
 }
