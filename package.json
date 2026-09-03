@@ -6,7 +6,8 @@
     "index.js",
     "index.d.ts",
     "express.d.ts",
-    "src/**/*.js"
+    "src/**/*.js",
+    "src/**/*.d.ts"
   ],
   "exports": {
     ".": {
@@ -34,6 +35,8 @@
     "node": ">=20"
   },
   "scripts": {
+    "build": "node scripts/build-types.js",
+    "prepack": "npm run build",
     "lint": "eslint --cache --fix .",
     "pretest": "eslint --cache",
     "test-debug": "mocha --inspect-brk=50000 --no-timeout",
@@ -49,6 +52,7 @@
     "eslint-plugin-mocha": "^11.2.0",
     "eslint-plugin-n": "^17.24.0",
     "mocha": "^11.7.5",
-    "sinon": "^21.1.2"
+    "sinon": "^21.1.2",
+    "typescript": "^6.0.3"
   }
 }

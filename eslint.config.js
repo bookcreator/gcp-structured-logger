@@ -82,6 +82,15 @@ module.exports = defineConfig([
       }
    },
    {
+      name: 'Scripts',
+      files: [
+         'scripts/**',
+      ],
+      rules: {
+         'no-console': 'off'
+      }
+   },
+   {
       name: 'Tests',
       files: [
          'test/**',

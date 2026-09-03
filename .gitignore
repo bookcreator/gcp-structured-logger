@@ -35,3 +35,6 @@ yarn-error.log*
 
 # eslint
 .eslintcache
+
+# Declarations generated on prepack (see scripts/build-types.js)
+src/**/*.d.ts
