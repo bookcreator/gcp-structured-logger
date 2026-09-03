@@ -80,7 +80,7 @@ class StructuredLogger {
    /**
     * @protected
     * @param {Request} request
-    * @param {import('../').ExtractUser | undefined} extractUser
+    * @param {import('../').ExtractUser<any> | undefined} extractUser
     */
    _requestChild(request, extractUser) {
       return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
@@ -533,7 +533,7 @@ class StructuredRequestLogger extends StructuredTracedLogger {
     * @param {import('../').Transport | undefined} productionTransport
     * @param {{ [key: string]: string } | undefined} labels
     * @param {Request} request
-    * @param {import('../').ExtractUser | undefined} extractUser
+    * @param {import('../').ExtractUser<any> | undefined} extractUser
     */
    constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
       super(projectId, logName, serviceContext, productionTransport, labels, extractTraceContext(projectId, request) ?? {})

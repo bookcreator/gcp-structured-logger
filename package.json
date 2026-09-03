@@ -3,19 +3,34 @@
   "version": "3.1.8",
   "description": "Structured logger for GCP logging",
   "files": [
-    "src/**/*.js",
+    "index.js",
     "index.d.ts",
-    "express.d.ts"
+    "express.d.ts",
+    "src/**/*.js",
+    "src/**/*.d.ts"
   ],
   "exports": {
     ".": {
-      "default": "./index.js",
-      "types": "./index.d.ts"
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./index.js": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
     },
     "./express": {
-      "default": "./index.js",
-      "types": "./express.d.ts"
-    }
+      "types": "./express.d.ts",
+      "default": "./index.js"
+    },
+    "./src/*": {
+      "types": "./src/*.d.ts",
+      "default": "./src/*.js"
+    },
+    "./src/*.js": {
+      "types": "./src/*.d.ts",
+      "default": "./src/*.js"
+    },
+    "./package.json": "./package.json"
   },
   "repository": {
     "type": "git",
@@ -33,10 +48,14 @@
     "node": ">=20"
   },
   "scripts": {
+    "build": "node scripts/build-types.js",
+    "prepack": "npm run build",
     "lint": "eslint --cache --fix .",
     "pretest": "eslint --cache",
     "test-debug": "mocha --inspect-brk=50000 --no-timeout",
     "test": "c8 --reporter=text --reporter=html --reporter=text-summary mocha --enable-source-maps",
+    "test:types": "npm run build && tsc -p test/types/tsconfig.json && npm run test:types:consumers && node scripts/check-package-files.js",
+    "test:types:consumers": "tsc -p test/types/consumer && tsc -p test/types/consumer/tsconfig.bundler.json && tsc -p test/types/consumer/tsconfig.node10.json && node test/types/consumer/runtime.cjs",
     "postversion": "git push --follow-tags"
   },
   "devDependencies": {
@@ -48,6 +67,7 @@
     "eslint-plugin-mocha": "^11.2.0",
     "eslint-plugin-n": "^17.24.0",
     "mocha": "^11.7.5",
-    "sinon": "^21.1.2"
+    "sinon": "^21.1.2",
+    "typescript": "^6.0.3"
   }
 }

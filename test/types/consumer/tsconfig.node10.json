@@ -1,0 +1,16 @@
+{
+   "extends": "./tsconfig.json",
+   "compilerOptions": {
+      // Still what TypeScript 5 consumers get by default with `module: commonjs`; deprecated in 6.0
+      "module": "commonjs",
+      "moduleResolution": "node10",
+      "ignoreDeprecations": "6.0",
+      // node10 does not read `exports`, so map the package name to the repo
+      // root, which is what it would find in node_modules
+      "baseUrl": ".",
+      "paths": {
+         "gcp-structured-logger": ["../../.."],
+         "gcp-structured-logger/*": ["../../../*"]
+      }
+   }
+}

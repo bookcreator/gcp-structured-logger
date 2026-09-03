@@ -1,0 +1,18 @@
+{
+   // Compiles the consumer programs against the package by name under node16
+   // resolution. tsconfig.bundler.json and tsconfig.node10.json extend this
+   // for the other resolution modes consumers use.
+   "compilerOptions": {
+      "strict": true,
+      "noEmit": true,
+      "skipLibCheck": true,
+      "module": "node16",
+      "target": "ES2023",
+      "types": ["node"]
+   },
+   "files": [
+      "root.ts",
+      "express.ts",
+      "deep.ts"
+   ]
+}

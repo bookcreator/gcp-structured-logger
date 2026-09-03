@@ -1,0 +1,20 @@
+{
+   // Checks the declaration files that get published, exactly as shipped and
+   // with `skipLibCheck` off, so an error inside them cannot hide behind a
+   // consumer's `skipLibCheck: true`. Run after `npm run build`.
+   "compilerOptions": {
+      "strict": true,
+      "noEmit": true,
+      "skipLibCheck": false,
+      "module": "node20",
+      "target": "ES2023",
+      "types": ["node"]
+   },
+   "files": [
+      "../../index.d.ts",
+      "../../express.d.ts"
+   ],
+   "include": [
+      "../../src/**/*.d.ts"
+   ]
+}

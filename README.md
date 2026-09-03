@@ -89,6 +89,34 @@ app.use(logger.makeErrorMiddleware())
 ```
 
 
+### With TypeScript
+
+Import `Logging` from `gcp-structured-logger/express` instead of the package root. It is the same class at runtime, but its middleware is typed with the Express `Request` and `Response`, and importing it declares `req.log` on every Express request. The type parameter lists any extra properties your own middleware adds to requests, and they are available to `requestUserExtractor`. The Express types come from `@types/express` (or `@types/express-serve-static-core`), which need to be installed.
+
+```ts
+import express from 'express'
+import { Logging } from 'gcp-structured-logger/express'
+
+const logger = new Logging<{ user?: { id: string } }>({
+   projectId: 'my-project',
+   logName: 'my-log',
+   serviceContext: { service: 'my-service', version: '1.0.0' },
+   requestUserExtractor: req => req.user?.id ?? null,
+})
+
+const app = express()
+
+app.use(logger.makeLoggingMiddleware())
+
+app.get('/', (req, res) => {
+   // req.log is a StructuredRequestLogger
+   req.log.info('Incoming request')
+   res.send('Hello World')
+})
+
+app.use(logger.makeErrorMiddleware())
+```
+
 ## With Node HTTP2 server
 
 Can be use with [`node:http2`](https://nodejs.org/api/http2.html) server but only for attaching a `log` property to a `Http2ServerRequest` or `Http2Stream`.
