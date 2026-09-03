@@ -41,6 +41,8 @@
     "pretest": "eslint --cache",
     "test-debug": "mocha --inspect-brk=50000 --no-timeout",
     "test": "c8 --reporter=text --reporter=html --reporter=text-summary mocha --enable-source-maps",
+    "test:types": "npm run build && tsc -p test/types/tsconfig.json && npm run test:types:consumers && node scripts/check-package-files.js",
+    "test:types:consumers": "tsc -p test/types/consumer && tsc -p test/types/consumer/tsconfig.bundler.json && tsc -p test/types/consumer/tsconfig.node10.json && node test/types/consumer/runtime.cjs",
     "postversion": "git push --follow-tags"
   },
   "devDependencies": {
