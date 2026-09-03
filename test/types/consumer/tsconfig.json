@@ -12,6 +12,7 @@
    },
    "files": [
       "root.ts",
-      "express.ts"
+      "express.ts",
+      "deep.ts"
    ]
 }

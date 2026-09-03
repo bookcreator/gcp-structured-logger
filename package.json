@@ -14,10 +14,23 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
+    "./index.js": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./express": {
       "types": "./express.d.ts",
       "default": "./index.js"
-    }
+    },
+    "./src/*": {
+      "types": "./src/*.d.ts",
+      "default": "./src/*.js"
+    },
+    "./src/*.js": {
+      "types": "./src/*.d.ts",
+      "default": "./src/*.js"
+    },
+    "./package.json": "./package.json"
   },
   "repository": {
     "type": "git",
