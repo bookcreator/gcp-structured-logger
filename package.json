@@ -10,12 +10,12 @@
   ],
   "exports": {
     ".": {
-      "default": "./index.js",
-      "types": "./index.d.ts"
+      "types": "./index.d.ts",
+      "default": "./index.js"
     },
     "./express": {
-      "default": "./index.js",
-      "types": "./express.d.ts"
+      "types": "./express.d.ts",
+      "default": "./index.js"
     }
   },
   "repository": {
