@@ -4,6 +4,7 @@
   "description": "Structured logger for GCP logging",
   "files": [
     "src/**/*.js",
+    "index.js",
     "index.d.ts",
     "express.d.ts"
   ],
