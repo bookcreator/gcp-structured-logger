@@ -4,6 +4,7 @@
   "description": "Structured logger for GCP logging",
   "files": [
     "src/**/*.js",
+    "src/**/*.d.ts",
     "index.js",
     "index.d.ts",
     "express.d.ts"
@@ -38,6 +39,8 @@
     "pretest": "eslint --cache",
     "test-debug": "mocha --inspect-brk=50000 --no-timeout",
     "test": "c8 --reporter=text --reporter=html --reporter=text-summary mocha --enable-source-maps",
+    "prepack": "npx --no-dry-run -p typescript@6 tsc --allowJs --declaration --emitDeclarationOnly src/*.js",
+    "postpack": "rm -f src/*.d.ts",
     "postversion": "git push --follow-tags"
   },
   "devDependencies": {

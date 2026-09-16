@@ -53,7 +53,7 @@ export interface ServiceContext {
    service: string;
    version?: string;
 }
-export type ExtractUser<Req extends IncomingMessage> = (req: Req) => string | null | void;
+export type ExtractUser<Req extends IncomingMessage = IncomingMessage> = (req: Req) => string | null | void;
 export type Transport = (entry: TransportLogEntry, data: string | { message?: string, [k: string]: any }) => void;
 export interface LoggingConfig<Req extends IncomingMessage = IncomingMessage> {
    /** GCP project ID. */
