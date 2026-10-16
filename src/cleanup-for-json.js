@@ -32,9 +32,10 @@ module.exports = function cleanupForJSON(obj) {
 
    /**
     * @param {any} _obj
+    * @param {boolean} useCustomMethods
     * @returns {any}
     */
-   function convert(_obj, parentKey = '') {
+   function convert(_obj, parentKey = '', useCustomMethods = true) {
       if (Buffer.isBuffer(_obj)) return {
          '@type': 'Buffer',
          length: _obj.length,
@@ -49,10 +50,12 @@ module.exports = function cleanupForJSON(obj) {
       if (typeof _obj === 'bigint') return _obj.toString()
 
       if (_obj !== null && typeof _obj === 'object') {
-         // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
-         if (typeof _obj.toJSON === 'function') return convert(_obj.toJSON(parentKey), parentKey)
-         // Use custom inspect method
-         if (canUseCustomInspect(_obj)) return convert(_obj[inspect.custom](inspect.defaultOptions.depth, inspect.defaultOptions, inspect), parentKey)
+         if (useCustomMethods) {
+            // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
+            if (typeof _obj.toJSON === 'function') return convert(_obj.toJSON(parentKey), parentKey, false)
+            // Use custom inspect method
+            if (canUseCustomInspect(_obj)) return convert(_obj[inspect.custom](inspect.defaultOptions.depth, inspect.defaultOptions, inspect), parentKey, false)
+         }
          // Check if we've seen this reference before
          if (seenRefs.has(_obj)) return '[Circular]'
 
@@ -77,8 +80,14 @@ module.exports = function cleanupForJSON(obj) {
             if (name === 'AggregateError' || _obj instanceof AggregateError) props.errors = _obj.errors
             val = convert({ ...props, name, stack, message, cause }, parentKey)
          } else {
-            val = /** @type {{ [key: string]: any }} */({})
-            for (const k in _obj) val[k] = convert(_obj[k], k)
+            /** @type {[key: string, value: any][]} */
+            const entries = []
+            for (const k in _obj) {
+               const v = _obj[k]
+               // Drop functions - they're not serialisable anyway
+               if (typeof v !== 'function') entries.push([k, convert(_obj[k], k)])
+            }
+            val = Object.fromEntries(entries)
          }
          seenRefs.delete(_obj)
          return val

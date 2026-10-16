@@ -385,13 +385,27 @@ describe('cleanup-for-json', function () {
    })
 
    describe('Objects', function () {
+
       it('should serialise to object', function () {
          const v = {
             1: '2',
             '2': 2,
-            'hello': false
+            'hello': false,
+            checker1() { },
+            checker2: () => { },
          }
-         assert.deepStrictEqual(cleanupForJSON(v), v)
+         assert.deepStrictEqual(cleanupForJSON(v), {
+            1: '2',
+            '2': 2,
+            'hello': false,
+         })
+      })
+
+      it('should keep own __proto__ key without changing prototype', function () {
+         const result = cleanupForJSON(JSON.parse('{"__proto__":"x","a":1}'))
+
+         assert.strictEqual(Object.getPrototypeOf(result), Object.prototype)
+         assert.sameDeepMembers(Object.entries(result), [['__proto__', 'x'], ['a', 1]])
       })
 
       it('should serialise values', function () {
@@ -443,6 +457,20 @@ describe('cleanup-for-json', function () {
          const v = {
             toJSON() {
                return { hello: 'world' }
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), { hello: 'world' })
+      })
+
+      it('should serialise to object using toJSON (deep)', function () {
+         const hello = {
+            toJSON() {
+               return 'world'
+            }
+         }
+         const v = {
+            toJSON() {
+               return { hello }
             }
          }
          assert.deepStrictEqual(cleanupForJSON(v), { hello: 'world' })
@@ -535,6 +563,28 @@ describe('cleanup-for-json', function () {
             }
          }
          assert.deepStrictEqual(cleanupForJSON(v), 'hello')
+      })
+
+      it('should serialise to object using toJSON that returns itself', function () {
+         const v = {
+            toJSON() {
+               return v
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), {})
+         assert.notStrictEqual(cleanupForJSON(v), v)
+         assert.deepStrictEqual(JSON.stringify(cleanupForJSON(v)), '{}')
+      })
+
+      it('should serialise to object using toJSON that returns this', function () {
+         const v = {
+            toJSON() {
+               return this
+            }
+         }
+         assert.deepStrictEqual(cleanupForJSON(v), {})
+         assert.notStrictEqual(cleanupForJSON(v), v)
+         assert.deepStrictEqual(JSON.stringify(cleanupForJSON(v)), '{}')
       })
 
       it('should serialise to object using toJSON that returns null', function () {
