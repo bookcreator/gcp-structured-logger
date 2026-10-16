@@ -444,7 +444,7 @@ class StructuredLogger {
                if (message) messageData.message = message
                data = messageData
             }
-            this._productionTransport(entry, data)
+            this._productionTransport(entry, cleanupForJSON(data))
          } else {
 
             // See https://cloud.google.com/run/docs/logging#container-logs

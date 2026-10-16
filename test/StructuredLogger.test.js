@@ -554,6 +554,63 @@ describe('StructuredLogger', function () {
                      severity__: LogSeverity.WARNING,
                   })
                })
+
+               it('should cleanup data parameter for JSON', function () {
+                  const circular = { blah: 1 }
+                  circular.circular = circular
+                  const date = new Date()
+                  const buffer = Buffer.from('Hello, world!', 'utf8')
+                  const message = 'hello'
+                  const data1 = { thing: 'world', blah: [/d/, date], base64: buffer, set: new Set([1, 2]), map: new Map([['key', 'value']]) }
+                  const data2 = { hello: 12, circular, bigint: BigInt(1000000) }
+
+                  logger.log(message, data1, data2)
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), {
+                     '0': {
+                        thing: 'world',
+                        blah: [
+                           {
+                              '@type': 'RegExp',
+                              source: 'd',
+                              flags: '',
+                           },
+                           date.toISOString(),
+                        ],
+                        base64: {
+                           '@type': 'Buffer',
+                           length: buffer.length,
+                           base64: buffer.toString('base64'),
+                        },
+                        set: [1, 2],
+                        map: [{ key: 'key', value: 'value' }],
+                     },
+                     '1': {
+                        hello: 12,
+                        circular: {
+                           blah: 1,
+                           circular: '[Circular]',
+                        },
+                        bigint: '1000000',
+                     },
+                     message,
+                  })
+               })
+
+               it('should cleanup reported error causes for JSON', function () {
+                  const cause = new Error('CAUSE')
+                  const error = new Error('TOP LEVEL', { cause })
+
+                  logger.reportError(error)
+
+                  sinon.assert.calledOnce(productionTransport)
+                  assert.deepNestedPropertyVal(productionTransport.firstCall.lastArg, 'error.cause', {
+                     name: 'Error',
+                     message: 'CAUSE',
+                     stack: cause.stack,
+                     cause: undefined,
+                  })
+               })
             })
          })
       })
