@@ -20,6 +20,7 @@ describe('StructuredLogger', function () {
 
    before(function () {
       loggers = require('../src/StructuredLogger')
+      redactor = loggers.StructuredLogger.normaliseRedactor(false)
    })
 
    after(function () {
@@ -68,9 +69,11 @@ describe('StructuredLogger', function () {
 
    const projectId = 'project-id'
    const logName = 'log-name'
+   /** @type {(parentKey: string, value: string) => string} */
+   let redactor
 
    it('should create object', function () {
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, null, null)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
@@ -81,7 +84,7 @@ describe('StructuredLogger', function () {
 
    it('should create object with provided production transport', function () {
       const productionTransport = () => { }
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, productionTransport, null)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
@@ -94,7 +97,7 @@ describe('StructuredLogger', function () {
       const labels = {
          hello: 'world'
       }
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, labels)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, null, labels)
 
       assert.propertyVal(l, '_projectId', projectId)
       assert.propertyVal(l, '_logName', logName)
@@ -108,7 +111,7 @@ describe('StructuredLogger', function () {
          hello: 'world'
       }
       const type = 'TYPE'
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, labels).child(type)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, productionTransport, labels).child(type)
 
       assert.instanceOf(l, loggers.StructuredLogger)
       assert.propertyVal(l, '_projectId', projectId)
@@ -122,7 +125,7 @@ describe('StructuredLogger', function () {
    it('should create traced logger', function () {
       const productionTransport = () => { }
       const trace = {}
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)._tracedChild(trace)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, productionTransport, null)._tracedChild(trace)
 
       assert.instanceOf(l, loggers.StructuredTracedLogger)
       assert.propertyVal(l, '_projectId', projectId)
@@ -137,7 +140,7 @@ describe('StructuredLogger', function () {
    it('should create request logger', function () {
       const productionTransport = () => { }
       const req = make()
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)._requestChild(req)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, productionTransport, null)._requestChild(req)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
@@ -157,7 +160,7 @@ describe('StructuredLogger', function () {
       const labels = {
          hello: 'world'
       }
-      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, labels)._requestChild(req, extractUser)
+      const l = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, productionTransport, labels)._requestChild(req, extractUser)
 
       assert.instanceOf(l, loggers.StructuredRequestLogger)
       assert.propertyVal(l, '_projectId', projectId)
@@ -171,6 +174,147 @@ describe('StructuredLogger', function () {
       assert.property(l, '_trace')
    })
 
+   describe('.normaliseRedactor', function () {
+
+      it('should return default redactor for true', function () {
+         const r = loggers.StructuredLogger.normaliseRedactor(true)
+
+         assert.isFunction(r)
+         assert.strictEqual(loggers.StructuredLogger.normaliseRedactor(true), r)
+      })
+
+      it('should return default redactor when not provided regardless of NODE_ENV', function () {
+         process.env.NODE_ENV = 'production'
+         assert.strictEqual(loggers.StructuredLogger.normaliseRedactor(), loggers.StructuredLogger.normaliseRedactor(true))
+
+         process.env.NODE_ENV = 'development'
+         assert.strictEqual(loggers.StructuredLogger.normaliseRedactor(), loggers.StructuredLogger.normaliseRedactor(true))
+         assert.strictEqual(loggers.StructuredLogger.normaliseRedactor(undefined), loggers.StructuredLogger.normaliseRedactor(true))
+      })
+
+      it('should return pass-through redactor for false', function () {
+         const r = loggers.StructuredLogger.normaliseRedactor(false)
+
+         assert.notStrictEqual(r, loggers.StructuredLogger.normaliseRedactor(true))
+         assert.strictEqual(r('message', 'hello world'), 'hello world')
+         assert.strictEqual(r('message', 'Bearer abc123'), 'Bearer abc123')
+      })
+
+      it('should call provided redactor function with parent key, value and default redactor', function () {
+         const custom = sinon.stub().returns('REDACTED')
+         const r = loggers.StructuredLogger.normaliseRedactor(custom)
+
+         assert.strictEqual(r('message', 'hello world'), 'REDACTED')
+         sinon.assert.calledOnceWithExactly(custom, 'message', 'hello world', loggers.StructuredLogger.normaliseRedactor(true))
+      })
+
+      it('should allow provided redactor function to fall back to default redactor', function () {
+         /**
+          * @param {string} parentKey
+          * @param {string} value
+          * @param {(parentKey: string, value: string) => string} defaultRedactor
+          */
+         const custom = (parentKey, value, defaultRedactor) => value === 'secret' ? '***' : defaultRedactor(parentKey, value)
+         const r = loggers.StructuredLogger.normaliseRedactor(custom)
+
+         assert.strictEqual(r('message', 'secret'), '***')
+         assert.strictEqual(r('message', 'hello world'), 'hello world')
+         assert.match(r('message', 'Bearer abc123'), /^<<REDACTED> - value matches /)
+      })
+
+      describe('when the provided redactor function fails', function () {
+
+         it('should redact the value when it throws', function () {
+            const r = loggers.StructuredLogger.normaliseRedactor(() => { throw new Error('boom') })
+
+            assert.strictEqual(r('ssn', 123456789), '<<REDACTED> - custom redactor failed>')
+         })
+
+         it('should redact the value when it returns undefined for a defined value', function () {
+            const r = loggers.StructuredLogger.normaliseRedactor(() => undefined)
+
+            assert.strictEqual(r('ssn', '123-45-6789'), '<<REDACTED> - custom redactor failed>')
+         })
+
+         it('should not treat returning undefined for an undefined value as a failure', function () {
+            const r = loggers.StructuredLogger.normaliseRedactor((_parentKey, value) => value)
+
+            assert.isUndefined(r('missing', undefined))
+         })
+      })
+
+      it('should throw TypeError for invalid values', function () {
+         assert.throws(() => loggers.StructuredLogger.normaliseRedactor(null), TypeError, 'redactor must be a boolean or function, got null')
+         assert.throws(() => loggers.StructuredLogger.normaliseRedactor(/** @type {any} */('true')), TypeError, 'redactor must be a boolean or function, got string')
+         assert.throws(() => loggers.StructuredLogger.normaliseRedactor(/** @type {any} */(1)), TypeError, 'redactor must be a boolean or function, got number')
+         assert.throws(() => loggers.StructuredLogger.normaliseRedactor(/** @type {any} */({})), TypeError, 'redactor must be a boolean or function, got object')
+      })
+   })
+
+   describe('Redacted output', function () {
+
+      /** @type {sinon.SinonSpy<[string, string], string>} */
+      let redactor
+      /** @type {InstanceType<loggers['StructuredLogger']>} */
+      let logger
+
+      beforeEach(function () {
+         redactor = sinon.spy((_parentKey, value) => value)
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, null, null)
+      })
+
+      it('should call redactor with parent key and value of each string when NODE_ENV=production', function () {
+         process.env.NODE_ENV = 'production'
+
+         logger.log('hello', { auth: 'Bearer abc123', nested: { key: 'value' } })
+
+         sinon.assert.calledWith(redactor, 'message', 'hello')
+         sinon.assert.calledWith(redactor, 'auth', 'Bearer abc123')
+         sinon.assert.calledWith(redactor, 'key', 'value')
+      })
+
+      it('should not call redactor when NODE_ENV!=production', function () {
+         process.env.NODE_ENV = 'development'
+
+         logger.log('hello', { auth: 'Bearer abc123', nested: { key: 'value' } })
+
+         sinon.assert.notCalled(redactor)
+      })
+
+      context('with productionTransport', function () {
+
+         beforeEach(function () {
+            logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, sinon.spy(), null)
+         })
+
+         it('should call redactor with parent key and value of each string when NODE_ENV=production', function () {
+            process.env.NODE_ENV = 'production'
+
+            logger.log('hello', { auth: 'Bearer abc123', nested: { key: 'value' } })
+
+            sinon.assert.calledWith(redactor, 'message', 'hello')
+            sinon.assert.calledWith(redactor, 'auth', 'Bearer abc123')
+            sinon.assert.calledWith(redactor, 'key', 'value')
+         })
+
+         it('should call redactor once with root parent key for message only data when NODE_ENV=production', function () {
+            process.env.NODE_ENV = 'production'
+
+            logger.log('hello')
+
+            sinon.assert.calledOnceWithExactly(redactor, '', 'hello')
+         })
+
+         it('should not call redactor when NODE_ENV!=production', function () {
+            process.env.NODE_ENV = 'development'
+
+            logger.log('hello', { auth: 'Bearer abc123', nested: { key: 'value' } })
+
+            sinon.assert.notCalled(redactor)
+         })
+      })
+   })
+
    describe('Logging methods', function () {
 
       /** @type {InstanceType<loggers['StructuredLogger']>} */
@@ -179,7 +323,7 @@ describe('StructuredLogger', function () {
       let writeSpy
 
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, null, null)
          writeSpy = sinon.spy(logger, '_write')
       })
 
@@ -472,7 +616,7 @@ describe('StructuredLogger', function () {
                const productionTransport = sinon.spy(/** @type {import('../').Transport} */_entry => { })
 
                before(function () {
-                  logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, productionTransport, null)
+                  logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, productionTransport, null)
                   writeSpy = sinon.spy(logger, '_write')
                })
 
@@ -552,6 +696,17 @@ describe('StructuredLogger', function () {
                   sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), {
                      message: 'message',
                      severity__: LogSeverity.WARNING,
+                  })
+               })
+
+               it('should clean up data parameter for JSON', function () {
+                  const date = new Date(0)
+
+                  logger._write({ timestamp: 0n }, { message: 'message', date })
+
+                  sinon.assert.calledOnceWithExactly(productionTransport, sinon.match({ severity: LogSeverity.DEFAULT }), {
+                     message: 'message',
+                     date: date.toISOString(),
                   })
                })
 
@@ -1065,7 +1220,7 @@ describe('StructuredLogger', function () {
       let logger
 
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, null, null)
       })
 
       it('should return StructuredTracedLogger with no sampling specified', function () {
@@ -1227,7 +1382,7 @@ describe('StructuredLogger', function () {
       let logger
 
       before(function () {
-         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, null, null)
+         logger = new loggers.StructuredLogger(projectId, logName, SERVICE_CONTEXT, redactor, null, null)
       })
 
       describe('#child', function () {

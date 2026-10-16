@@ -3,7 +3,13 @@ const { inspect } = require('node:util')
 const { assert } = require('chai')
 const sinon = require('sinon')
 
-const cleanupForJSON = require('../src/cleanup-for-json')
+const _cleanupForJSON = require('../src/cleanup-for-json')
+
+/**
+ * @param {any} obj
+ * @param {Parameters<typeof _cleanupForJSON>[1]} [redactor]
+ */
+const cleanupForJSON = (obj, redactor = (_parentKey, value) => value) => _cleanupForJSON(obj, redactor)
 
 describe('cleanup-for-json', function () {
 
@@ -678,6 +684,178 @@ describe('cleanup-for-json', function () {
             assert.strictEqual(Object.getPrototypeOf(result), Object.prototype)
             assert.sameDeepMembers(Object.entries(result), [['__proto__', 'x'], ['constructor', 'y'], ['accept', 'z']])
          })
+      })
+   })
+
+   describe('redactor', function () {
+      /** @type {(parentKey: string, value: string) => string} */
+      const passthrough = (_parentKey, value) => value
+
+      it('should be called with empty parent key for root string', function () {
+         const redactor = sinon.spy(passthrough)
+
+         assert.strictEqual(cleanupForJSON('hello', redactor), 'hello')
+
+         sinon.assert.calledOnceWithExactly(redactor, '', 'hello')
+      })
+
+      it('should use the returned value', function () {
+         const redactor = sinon.spy((parentKey, value) => parentKey === 'auth' ? '[REDACTED]' : value)
+
+         assert.deepStrictEqual(cleanupForJSON({ auth: 'Bearer abc', count: 1 }, redactor), { auth: '[REDACTED]', count: 1 })
+
+         sinon.assert.calledWithExactly(redactor, 'auth', 'Bearer abc')
+      })
+
+      it('should be called with object keys and then the converted object', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ auth: 'Bearer abc', nested: { token: 'xyz' } }, redactor)
+
+         sinon.assert.callCount(redactor, 4)
+         sinon.assert.calledWithExactly(redactor, 'auth', 'Bearer abc')
+         sinon.assert.calledWithExactly(redactor, 'token', 'xyz')
+         sinon.assert.calledWithExactly(redactor, 'nested', { token: 'xyz' })
+         sinon.assert.calledWithExactly(redactor, '', { auth: 'Bearer abc', nested: { token: 'xyz' } })
+         sinon.assert.callOrder(redactor.withArgs('token', 'xyz'), redactor.withArgs('nested', { token: 'xyz' }))
+      })
+
+      it('should be called with array indexes and then the converted array', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ list: ['a', 'b'] }, redactor)
+
+         sinon.assert.callCount(redactor, 4)
+         sinon.assert.calledWithExactly(redactor, '0', 'a')
+         sinon.assert.calledWithExactly(redactor, '1', 'b')
+         sinon.assert.calledWithExactly(redactor, 'list', ['a', 'b'])
+         sinon.assert.calledWithExactly(redactor, '', { list: ['a', 'b'] })
+      })
+
+      it('should be called once with Set indexes and then the converted Set', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ set: new Set(['a', 'b']) }, redactor)
+
+         sinon.assert.callCount(redactor, 4)
+         sinon.assert.calledWithExactly(redactor, '0', 'a')
+         sinon.assert.calledWithExactly(redactor, '1', 'b')
+         sinon.assert.calledOnceWithExactly(redactor.withArgs('set'), 'set', ['a', 'b'])
+         sinon.assert.calledWithExactly(redactor, '', { set: ['a', 'b'] })
+      })
+
+      it('should be called once for iterables', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ iter: { *[Symbol.iterator]() { yield 'a' } } }, redactor)
+
+         sinon.assert.callCount(redactor, 3)
+         sinon.assert.calledWithExactly(redactor, '0', 'a')
+         sinon.assert.calledOnceWithExactly(redactor.withArgs('iter'), 'iter', ['a'])
+         sinon.assert.calledWithExactly(redactor, '', { iter: ['a'] })
+      })
+
+      it('should be called with Map parent key for keys and Map key for values', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ headers: new Map([['authorization', 'Bearer abc'], [123, 'num']]) }, redactor)
+
+         const converted = [{ key: 'authorization', value: 'Bearer abc' }, { key: 123, value: 'num' }]
+         sinon.assert.callCount(redactor, 6)
+         sinon.assert.calledWithExactly(redactor, 'headers', 'authorization')
+         sinon.assert.calledWithExactly(redactor, 'authorization', 'Bearer abc')
+         sinon.assert.calledWithExactly(redactor, 'headers', 123)
+         sinon.assert.calledWithExactly(redactor, '123', 'num')
+         sinon.assert.calledWithExactly(redactor, 'headers', converted)
+         sinon.assert.calledWithExactly(redactor, '', { headers: converted })
+      })
+
+      it('should be called with header names for Headers values', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ headers: new Headers([['cookie', 'sid=abc'], ['set-cookie', 'a=1']]) }, redactor)
+
+         sinon.assert.calledWithExactly(redactor, 'cookie', 'sid=abc')
+         sinon.assert.calledWithExactly(redactor, 'set-cookie', ['a=1'])
+         sinon.assert.calledOnceWithExactly(redactor.withArgs('headers'), 'headers', { cookie: 'sid=abc', 'set-cookie': ['a=1'] })
+      })
+
+      it('should be called once with Error properties and then the converted Error', function () {
+         const redactor = sinon.spy(passthrough)
+         const e = new Error('Some secret')
+         e.code = 'ERROR_CODE'
+
+         cleanupForJSON({ error: e }, redactor)
+
+         const converted = { code: 'ERROR_CODE', name: 'Error', stack: e.stack, message: 'Some secret', cause: undefined }
+         sinon.assert.callCount(redactor, 7)
+         sinon.assert.calledWithExactly(redactor, 'code', 'ERROR_CODE')
+         sinon.assert.calledWithExactly(redactor, 'name', 'Error')
+         sinon.assert.calledWithExactly(redactor, 'stack', e.stack)
+         sinon.assert.calledWithExactly(redactor, 'message', 'Some secret')
+         sinon.assert.calledWithExactly(redactor, 'cause', undefined)
+         sinon.assert.calledOnceWithExactly(redactor.withArgs('error'), 'error', converted)
+         sinon.assert.calledWithExactly(redactor, '', { error: converted })
+      })
+
+      it('should be called with parent key for toJSON string', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ value: { toJSON: () => 'hello' } }, redactor)
+
+         sinon.assert.callCount(redactor, 2)
+         sinon.assert.calledWithExactly(redactor, 'value', 'hello')
+         sinon.assert.calledWithExactly(redactor, '', { value: 'hello' })
+      })
+
+      it('should be called with parent key for inspect.custom string', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ value: { [inspect.custom]: () => 'hello' } }, redactor)
+
+         sinon.assert.callCount(redactor, 2)
+         sinon.assert.calledWithExactly(redactor, 'value', 'hello')
+         sinon.assert.calledWithExactly(redactor, '', { value: 'hello' })
+      })
+
+      it('should be called for non-string primitives', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ number: 1, boolean: true, null: null, undefined: undefined, bigint: 10n }, redactor)
+
+         sinon.assert.calledWithExactly(redactor, 'number', 1)
+         sinon.assert.calledWithExactly(redactor, 'boolean', true)
+         sinon.assert.calledWithExactly(redactor, 'null', null)
+         sinon.assert.calledWithExactly(redactor, 'undefined', undefined)
+         sinon.assert.calledWithExactly(redactor, 'bigint', '10')
+      })
+
+      it('should be called with Buffer base64 and RegExp source', function () {
+         const redactor = sinon.spy(passthrough)
+
+         cleanupForJSON({ buffer: Buffer.from('hello'), regexp: /abc/g }, redactor)
+
+         sinon.assert.calledWithExactly(redactor, 'buffer', Buffer.from('hello').toString('base64'))
+         sinon.assert.calledWithExactly(redactor, 'regexp', 'abc')
+      })
+
+      it('should use the returned value for Buffer base64 and RegExp source', function () {
+         const redactor = sinon.spy((parentKey, value) => parentKey ? '[REDACTED]' : value)
+
+         assert.deepStrictEqual(cleanupForJSON({ buffer: Buffer.from('hello'), regexp: /abc/g }, redactor), {
+            buffer: { '@type': 'Buffer', length: 5, base64: '[REDACTED]' },
+            regexp: { '@type': 'RegExp', source: '[REDACTED]', flags: 'g' },
+         })
+      })
+
+      it('should not be called for Dates or circular references', function () {
+         const redactor = sinon.spy(passthrough)
+         const v = { date: new Date(0) }
+         v.circular = v
+
+         cleanupForJSON(v, redactor)
+
+         sinon.assert.calledOnceWithExactly(redactor, '', { date: '1970-01-01T00:00:00.000Z', circular: '[Circular]' })
       })
    })
 })

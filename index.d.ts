@@ -62,6 +62,11 @@ export interface LoggingConfig<Req extends IncomingMessage = IncomingMessage> {
    logName: string;
    /** Used for error reporting. */
    serviceContext: ServiceContext;
+   /** Redactor function to apply to every value of log entries - primitives (strings, numbers, booleans, `null` and `undefined`) and also objects and arrays once their contents have been converted and redacted, so a whole subtree can be redacted by its key. Custom redactors must return any values they don't handle unchanged - to hide a value return a replacement (e.g. a string). If a custom redactor throws or returns `undefined` for a defined value, that value is replaced with `'<<REDACTED> - custom redactor failed>'` and a warning is emitted for each failure. Either set to `false` to not apply any redaction or provide a custom redactor function - this function takes a `parentKey` and a `value`, `''` `parentKey`s signify the root object. 
+    * If this is not set a default redactor is used.
+    * Note that the redactor is *NOT* called when `NODE_ENV` is not set to 'production'.
+    */
+   redactor?: ((parentKey: string, value: any, defaultRedactor: (parentKey: string, value: any) => any) => any) | boolean;
    /** Optional function to get a user from a request to apply to error reports. */
    requestUserExtractor?: ExtractUser<Req>;
    /** Extra labels to apply to all logs. */

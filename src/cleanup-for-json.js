@@ -25,8 +25,9 @@ function canUseCustomInspect(obj) {
  * * `RegExp`s with `{ source: <source string>, flags: <flags string> }`
  * * Circular `object`s with `[Circular]`
  * @param {any} obj
+ * @param {(parentKey: string, value: any) => any} redactor
  */
-module.exports = function cleanupForJSON(obj) {
+module.exports = function cleanupForJSON(obj, redactor) {
    // Use weak here so we don't capture anything
    const seenRefs = new WeakSet()
 
@@ -39,15 +40,16 @@ module.exports = function cleanupForJSON(obj) {
       if (Buffer.isBuffer(_obj)) return {
          '@type': 'Buffer',
          length: _obj.length,
-         base64: _obj.toString('base64')
+         base64: redactor(parentKey, _obj.toString('base64')),
       }
       if (types.isRegExp(_obj)) return {
          '@type': 'RegExp',
-         source: _obj.source,
-         flags: _obj.flags
+         source: redactor(parentKey, _obj.source),
+         flags: _obj.flags,
       }
+      // Don't need to worry about redacting dates
       if (types.isDate(_obj)) return _obj.toISOString()
-      if (typeof _obj === 'bigint') return _obj.toString()
+      if (typeof _obj === 'bigint') return redactor(parentKey, _obj.toString())
 
       if (_obj !== null && typeof _obj === 'object') {
          if (_obj instanceof Headers) {
@@ -69,26 +71,27 @@ module.exports = function cleanupForJSON(obj) {
          if (seenRefs.has(_obj)) return '[Circular]'
 
          seenRefs.add(_obj)
-         let val
-         if (types.isSet(_obj)) {
-            val = convert([..._obj], parentKey)
-         } else if (types.isMap(_obj)) {
-            val = []
-            _obj.forEach((value, key) => {
-               val.push({ key: convert(key, parentKey), value: convert(value, String(key)) })
-            })
-         } else if (Array.isArray(_obj)) {
-            val = _obj.map((v, k) => convert(v, String(k)))
-         } else if (Symbol.iterator in _obj && typeof _obj[Symbol.iterator] === 'function') {
-            val = convert([..._obj], parentKey)
-         } else if (isError(_obj)) {
-            let { name, stack, message, cause, ...props } = _obj
-            // If the error name is just Error see if we've got a custom class name for it
-            if (name === 'Error' && typeof _obj.constructor === 'function' && _obj.constructor.name) name = _obj.constructor.name
-            // @ts-ignore
-            if (name === 'AggregateError' || _obj instanceof AggregateError) props.errors = _obj.errors
-            val = convert({ ...props, name, stack, message, cause }, parentKey)
-         } else {
+         try {
+            // Sets, iterables and Errors are converted to arrays/objects whose own convert call applies the redactor
+            if (types.isSet(_obj)) return convert([..._obj], parentKey)
+            if (types.isMap(_obj)) {
+               /** @type {{ key: any, value: any }[]} */
+               const val = []
+               _obj.forEach((value, key) => {
+                  val.push({ key: convert(key, parentKey), value: convert(value, String(key)) })
+               })
+               return redactor(parentKey, val)
+            }
+            if (Array.isArray(_obj)) return redactor(parentKey, _obj.map((v, k) => convert(v, String(k))))
+            if (Symbol.iterator in _obj && typeof _obj[Symbol.iterator] === 'function') return convert([..._obj], parentKey)
+            if (isError(_obj)) {
+               let { name, stack, message, cause, ...props } = _obj
+               // If the error name is just Error see if we've got a custom class name for it
+               if (name === 'Error' && typeof _obj.constructor === 'function' && _obj.constructor.name) name = _obj.constructor.name
+               // @ts-ignore
+               if (name === 'AggregateError' || _obj instanceof AggregateError) props.errors = _obj.errors
+               return convert({ ...props, name, stack, message, cause }, parentKey)
+            }
             /** @type {[key: string, value: any][]} */
             const entries = []
             for (const k in _obj) {
@@ -96,12 +99,12 @@ module.exports = function cleanupForJSON(obj) {
                // Drop functions - they're not serialisable anyway
                if (typeof v !== 'function') entries.push([k, convert(_obj[k], k)])
             }
-            val = Object.fromEntries(entries)
+            return redactor(parentKey, Object.fromEntries(entries))
+         } finally {
+            seenRefs.delete(_obj)
          }
-         seenRefs.delete(_obj)
-         return val
       }
-      return _obj
+      return redactor(parentKey, _obj)
    }
 
    return convert(obj)

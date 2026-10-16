@@ -112,6 +112,113 @@ describe('index.js', function () {
          assert.strictEqual(l.logger._productionTransport, productionTransport)
       })
 
+      context('redactor', function () {
+
+         const { StructuredLogger, StructuredTracedLogger, StructuredRequestLogger } = require('../src/StructuredLogger')
+         /** @type {string | undefined} */
+         let NODE_ENV
+
+         beforeEach(function () {
+            ({ NODE_ENV } = process.env)
+         })
+
+         afterEach(function () {
+            if (NODE_ENV === undefined) {
+               delete process.env.NODE_ENV
+            } else {
+               process.env.NODE_ENV = NODE_ENV
+            }
+         })
+
+         it('should use default redactor when not provided regardless of NODE_ENV', function () {
+            process.env.NODE_ENV = 'production'
+            const prod = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+            assert.strictEqual(prod.logger._redactor, StructuredLogger.normaliseRedactor(true))
+
+            process.env.NODE_ENV = 'development'
+            const dev = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+            })
+            assert.strictEqual(dev.logger._redactor, StructuredLogger.normaliseRedactor(true))
+         })
+
+         it('should use default redactor when true', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               redactor: true,
+            })
+            assert.strictEqual(l.logger._redactor, StructuredLogger.normaliseRedactor(true))
+         })
+
+         it('should use pass-through redactor when false', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               redactor: false,
+            })
+            assert.strictEqual(l.logger._redactor, StructuredLogger.normaliseRedactor(false))
+         })
+
+         it('should throw TypeError when null', function () {
+            assert.throws(() => new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               redactor: null,
+            }), TypeError)
+         })
+
+         it('should use provided redactor function', function () {
+            const redactor = sinon.stub().returns('REDACTED')
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               redactor,
+            })
+            assert.strictEqual(l.logger._redactor('message', 'hello world'), 'REDACTED')
+            sinon.assert.calledOnceWithExactly(redactor, 'message', 'hello world', StructuredLogger.normaliseRedactor(true))
+         })
+
+         it('should pass redactor to traced logger', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               redactor: sinon.stub(),
+            })
+
+            const t = l.makeTracedLogger({ traceId: 'trace-id' })
+            assert.instanceOf(t, StructuredTracedLogger)
+            assert.strictEqual(t._redactor, l.logger._redactor)
+         })
+
+         it('should pass redactor to request logger', function () {
+            const l = new logger.Logging({
+               projectId,
+               logName,
+               serviceContext,
+               redactor: sinon.stub(),
+            })
+
+            const resStub = sinon.createStubInstance(require('http').ServerResponse)
+            const req = make({ res: resStub })
+            l.makeLoggingMiddleware()(req, resStub, sinon.stub())
+
+            assert.instanceOf(req.log, StructuredRequestLogger)
+            assert.strictEqual(req.log._redactor, l.logger._redactor)
+         })
+      })
+
       context('#makeTracedLogger', function () {
 
          it('should return StructuredTracedLogger', function () {

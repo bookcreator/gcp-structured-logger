@@ -6,7 +6,7 @@ const { Http2RequestHeaders } = require('./src/http2-request-headers')
 class Logging {
 
    /** @param {import('./').LoggingConfig} opts */
-   constructor({ projectId, logName, serviceContext, requestUserExtractor, extraLabels, productionTransport }) {
+   constructor({ projectId, logName, serviceContext, redactor, requestUserExtractor, extraLabels, productionTransport }) {
       /** @readonly @private */
       this._serviceContext = Object.freeze({ ...serviceContext })
       /** @readonly @private */
@@ -14,7 +14,7 @@ class Logging {
       /** @readonly @private */
       this._extractUser = requestUserExtractor
       /** @readonly */
-      this.logger = new StructuredLogger(projectId, logName, serviceContext, productionTransport, extraLabels)
+      this.logger = new StructuredLogger(projectId, logName, serviceContext, StructuredLogger.normaliseRedactor(redactor), productionTransport, extraLabels)
    }
 
    /**

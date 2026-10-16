@@ -29,22 +29,103 @@ const LOG_ENTRY_MAPPING = {
 
 /** @typedef {(import('node:http').IncomingMessage & { url: string, method: string }) | import('./http2-request-headers').Http2RequestHeaders} Request */
 
+/** @typedef {(parentKey: string, value: any) => any} Redactor */
+
+/**
+ * Will redact the value of keys matching any regexes
+ */
+const REDACTED_KEY_REGEXES = [
+   /^authorization$/i,
+   /^password$/i,
+   /^cookie$/i,
+   /^set-cookie$/i,
+   /^(?:client[-_]?)?secret$/i,
+   /^(?:x-)?api[-_]?key$/i,
+   /^(?:access|refresh|id)[-_]?token$/i,
+   /^x-goog-api-key$/i,
+   /^private[-_]?key$/i,
+]
+/**
+ * Redacts string like bearer XXX or token:XXXX, api=XXXX or ?access_token=XXXX or &refresh_token=XXXX
+ */
+const REDACTED_VALUE_REGEXES = [
+   /(?:^|authorization\s*:\s*)(?:bearer|basic)[\s=:]/i,
+   /^password[=:]/i,
+   /^(?:access|refresh|id)[-_]?token[=:]/i,
+   /[?&#](?:access|refresh|id)[-_]?token[=:]/i,
+   /^token[=:]/i,
+   /^assertion[=:]/i,
+   /(?:^|[?&#])(?:x[-_])?api[-_]?key[=:]/i,
+   /(?:^|[?&#])(?:client[-_]?)?secret[=:]/i,
+   /^authentication[=:]/i,
+   /^authorization[=:]/i,
+   // OAuth access tokens use a similar prefix
+   /\bya29\.[\w-]+/,
+   // Google API keys use a similar prefix and have a set length
+   /\bAIza[\w-]{35}\b/,
+   // PEM private keys of any type (RSA, EC, OPENSSH, ENCRYPTED etc.) - public keys and certificates aren't secret
+   /-----BEGIN [A-Z ]*PRIVATE KEY/,
+]
+/** @type {Redactor} */
+const DEFAULT_REDACTOR = (parentKey, value) => {
+   // Don't bother checking sentinel values or boolean flags - they don't expose anything
+   if (!(value === '' || value === null || value === undefined || typeof value === 'boolean' || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0))) {
+      if (parentKey) {
+         for (const r of REDACTED_KEY_REGEXES) {
+            if (r.test(parentKey)) return `<<REDACTED> - key matches ${r}>`
+         }
+      }
+
+      if (typeof value === 'string') {
+         for (const r of REDACTED_VALUE_REGEXES) {
+            if (r.test(value)) return `<<REDACTED> - value matches ${r}>`
+         }
+      }
+   }
+   return value
+}
+
+/** @type {Redactor} */
+const NO_REDACTOR = (_, value) => value
+
 class StructuredLogger {
+
+   /**
+    * @param {((parentKey: string, value: any, defaultRedactor: (parentKey: string, value: any) => any) => any) | boolean} redactor
+    * @returns {Redactor}
+    */
+   static normaliseRedactor(redactor = true) {
+      if (typeof redactor === 'boolean') return redactor ? DEFAULT_REDACTOR : NO_REDACTOR
+      if (typeof redactor === 'function') return (k, v) => {
+         try {
+            const r = redactor(k, v, DEFAULT_REDACTOR)
+            if (r === undefined && v !== undefined) throw new Error('Custom redactor did not return a value')
+            return r
+         } catch (ex) {
+            process.emitWarning(new Error(`Custom redactor function failed for key: ${k}, redacting the value instead`, { cause: ex }))
+            return '<<REDACTED> - custom redactor failed>'
+         }
+      }
+      throw new TypeError(`redactor must be a boolean or function, got ${redactor === null ? 'null' : typeof redactor}`)
+   }
 
    /**
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
+    * @param {Redactor} redactor
     * @param {import('../').Transport | undefined} productionTransport
     * @param {{ [key: string]: string } | undefined} labels
     */
-   constructor(projectId, logName, serviceContext, productionTransport, labels) {
+   constructor(projectId, logName, serviceContext, redactor, productionTransport, labels) {
       /** @readonly @private */
       this._projectId = projectId
       /** @readonly @private */
       this._logName = logName
       /** @readonly @private */
       this._serviceContext = serviceContext
+      /** @readonly @private */
+      this._redactor = redactor
       /** @readonly @private */
       this._productionTransport = productionTransport
       /** @readonly @protected */
@@ -58,7 +139,7 @@ class StructuredLogger {
     * @returns {StructuredLogger}
     */
    child(type) {
-      return new StructuredLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type })
+      return new StructuredLogger(this._projectId, this._logName, this._serviceContext, this._redactor, this._productionTransport, { ...this._labels, type })
    }
 
    /**
@@ -74,7 +155,7 @@ class StructuredLogger {
     * @param {Partial<import('../').TraceContext>} trace
     */
    _tracedChild(trace) {
-      return new StructuredTracedLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels }, trace)
+      return new StructuredTracedLogger(this._projectId, this._logName, this._serviceContext, this._redactor, this._productionTransport, { ...this._labels }, trace)
    }
 
    /**
@@ -83,7 +164,7 @@ class StructuredLogger {
     * @param {import('../').ExtractUser | undefined} extractUser
     */
    _requestChild(request, extractUser) {
-      return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
+      return new StructuredRequestLogger(this._projectId, this._logName, this._serviceContext, this._redactor, this._productionTransport, { ...this._labels, type: 'request' }, request, extractUser)
    }
 
    /** @param {any[]} args */
@@ -444,7 +525,7 @@ class StructuredLogger {
                if (message) messageData.message = message
                data = messageData
             }
-            this._productionTransport(entry, cleanupForJSON(data))
+            this._productionTransport(entry, cleanupForJSON(data, this._redactor))
          } else {
 
             // See https://cloud.google.com/run/docs/logging#container-logs
@@ -469,7 +550,7 @@ class StructuredLogger {
             if (!('messageData' in entry)) Object.assign(entry, messageData) // If we've not wrapped, add in the extra metadata at the root
 
             const fn = CONSOLE_SEVERITY[entry.severity].bind(console)
-            fn(JSON.stringify(cleanupForJSON(entry)))
+            fn(JSON.stringify(cleanupForJSON(entry, this._redactor)))
          }
       } else {
          let prefix = timestampToISOString(timestampNS, 3)
@@ -494,12 +575,13 @@ class StructuredTracedLogger extends StructuredLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
+    * @param {Redactor} redactor
     * @param {import('../').Transport | undefined} productionTransport
     * @param {{ [key: string]: string } | undefined} labels
     * @param {Partial<import('../').TraceContext>} trace
     */
-   constructor(projectId, logName, serviceContext, productionTransport, labels, trace) {
-      super(projectId, logName, serviceContext, productionTransport, labels)
+   constructor(projectId, logName, serviceContext, redactor, productionTransport, labels, trace) {
+      super(projectId, logName, serviceContext, redactor, productionTransport, labels)
       /** @readonly @private */
       this._trace = trace
    }
@@ -530,13 +612,14 @@ class StructuredRequestLogger extends StructuredTracedLogger {
     * @param {string} projectId
     * @param {string} logName
     * @param {import('../').ServiceContext} serviceContext
+    * @param {Redactor} redactor
     * @param {import('../').Transport | undefined} productionTransport
     * @param {{ [key: string]: string } | undefined} labels
     * @param {Request} request
     * @param {import('../').ExtractUser | undefined} extractUser
     */
-   constructor(projectId, logName, serviceContext, productionTransport, labels, request, extractUser) {
-      super(projectId, logName, serviceContext, productionTransport, labels, extractTraceContext(projectId, request) ?? {})
+   constructor(projectId, logName, serviceContext, redactor, productionTransport, labels, request, extractUser) {
+      super(projectId, logName, serviceContext, redactor, productionTransport, labels, extractTraceContext(projectId, request) ?? {})
       /** @readonly @private */
       this._request = request
       /** @readonly @private */

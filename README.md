@@ -30,6 +30,26 @@ logging.logger.info('Some log message', {
 ```
 
 
+## Redaction
+
+When `NODE_ENV` is `production`, log data is passed through a redactor before being written. By default, values are replaced with a `<<REDACTED> ...>` string if their key looks sensitive (e.g. `authorization`, `password`, `cookie`, `api_key`, `access_token`) or if a string value looks like a credential (e.g. `Bearer ...`, `?access_token=...`, Google API keys, OAuth tokens, PEM private keys).
+
+The `redactor` option can be:
+- `true` (default) - use the default redactor.
+- `false` - disable redaction.
+- A function `(parentKey, value, defaultRedactor) => any` - called for every value (primitives, and objects/arrays after their contents have been redacted). Return the value unchanged to keep it, or a replacement to hide it. If the function throws or returns `undefined` for a defined value, the value is redacted and a warning is emitted.
+
+```js
+const logging = new Logging({
+   // ...
+   redactor: (parentKey, value, defaultRedactor) => {
+      if (parentKey === 'email') return '<<REDACTED>>'
+      return defaultRedactor(parentKey, value)
+   },
+})
+```
+
+
 ## Error reporting
 
 To report errors to GCP Error Reporting the `reportError` method on a logger can be used.
