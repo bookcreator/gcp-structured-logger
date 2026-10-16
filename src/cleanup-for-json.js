@@ -2,17 +2,17 @@ const { types, inspect } = require('util')
 
 /** @type {any[]} */
 const TYPES_TO_IGNORE_INSPECT_CUSTOM = [
-   // Don't want to use Headers default inspect method as it stringifies to `Headers {}` which is not very useful
-   Headers,
 ]
 
 /** @param {any} obj */
 function canUseCustomInspect(obj) {
    if (typeof obj[inspect.custom] !== 'function') return false
    // If we've got one check we're not ignoring it
+   /* c8 ignore start: no types are currently ignored */
    for (const type of TYPES_TO_IGNORE_INSPECT_CUSTOM) {
       if (obj instanceof type) return false
    }
+   /* c8 ignore stop */
    return true
 }
 
@@ -50,6 +50,15 @@ module.exports = function cleanupForJSON(obj) {
       if (typeof _obj === 'bigint') return _obj.toString()
 
       if (_obj !== null && typeof _obj === 'object') {
+         if (_obj instanceof Headers) {
+            // Special case for Headers - the first element of each pair is the header name so means something so convert it to an object instead
+            /** @type {{ [key: string]: string | string[] }} */
+            const val = Object.fromEntries(_obj.entries())
+            const setCookie = _obj.getSetCookie()
+            if (setCookie.length > 0) val['set-cookie'] = setCookie
+            return convert(val, parentKey)
+         }
+
          if (useCustomMethods) {
             // Use the toJSON method if present as per https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior
             if (typeof _obj.toJSON === 'function') return convert(_obj.toJSON(parentKey), parentKey, false)

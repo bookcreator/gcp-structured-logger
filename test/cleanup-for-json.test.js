@@ -651,19 +651,32 @@ describe('cleanup-for-json', function () {
 
          it('should serialise Headers object with unique keys', function () {
             const object = new Headers({ foo: 'bar', ahello: 'world' })
-            assert.deepStrictEqual(cleanupForJSON(object), [['ahello', 'world'], ['foo', 'bar']])
+            assert.deepStrictEqual(cleanupForJSON(object), { ahello: 'world', foo: 'bar' })
          })
 
          it('should serialise Headers object with duplicate keys', function () {
             const object = new Headers([['foo', 'bar1'], ['ahello', 'world'], ['foo', 'bar2']])
-            assert.deepStrictEqual(cleanupForJSON(object), [['ahello', 'world'], ['foo', 'bar1, bar2']])
+            assert.deepStrictEqual(cleanupForJSON(object), { ahello: 'world', foo: 'bar1, bar2' })
          })
 
          it('should serialise Headers object with duplicate set-cookie keys', function () {
             const object = new Headers([['set-cookie', 'bar2'], ['hello', 'world'], ['set-cookie', 'bar1']])
             // Should be listed in added order
             assert.deepStrictEqual(object.getSetCookie(), ['bar2', 'bar1'])
-            assert.deepStrictEqual(cleanupForJSON(object), [['hello', 'world'], ['set-cookie', 'bar2'], ['set-cookie', 'bar1']])
+            assert.deepStrictEqual(cleanupForJSON(object), { hello: 'world', 'set-cookie': ['bar2', 'bar1'] })
+         })
+
+         it('should serialise Headers object with single set-cookie key as array', function () {
+            const object = new Headers([['set-cookie', 'bar'], ['hello', 'world']])
+            assert.deepStrictEqual(cleanupForJSON(object), { hello: 'world', 'set-cookie': ['bar'] })
+         })
+
+         it('should serialise Headers object with __proto__ and constructor keys', function () {
+            const object = new Headers([['__proto__', 'x'], ['constructor', 'y'], ['accept', 'z']])
+            const result = cleanupForJSON(object)
+
+            assert.strictEqual(Object.getPrototypeOf(result), Object.prototype)
+            assert.sameDeepMembers(Object.entries(result), [['__proto__', 'x'], ['constructor', 'y'], ['accept', 'z']])
          })
       })
    })
