@@ -64,7 +64,7 @@ function requestToErrorReportingHttpRequest(req) {
    const userAgent = getHeader(req, 'user-agent')
    if (userAgent !== undefined) httpReq.userAgent = userAgent
 
-   const referrer = getHeader(req, 'referrer')
+   const referrer = getHeader(req, 'referer')
    if (referrer !== undefined) httpReq.referrer = referrer
 
    const res = getResponse(req)

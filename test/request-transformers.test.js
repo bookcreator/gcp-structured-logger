@@ -66,11 +66,11 @@ describe('request-transformers', function () {
          })
       })
 
-      it('should include referer derived from referrer header', function () {
+      it('should include referer derived from referer header', function () {
          const req = make({
             ...base,
             headers: {
-               'referrer': 'https://google.com'
+               'referer': 'https://google.com'
             }
          })
          assert.deepStrictEqual(requestToHttpRequest(req), {
@@ -183,11 +183,11 @@ describe('request-transformers', function () {
          })
       })
 
-      it('should include referrer derived from referrer header', function () {
+      it('should include referrer derived from referer header', function () {
          const req = make({
             ...base,
             headers: {
-               'referrer': 'https://google.com'
+               'referer': 'https://google.com'
             }
          })
          assert.deepStrictEqual(requestToErrorReportingHttpRequest(req), {

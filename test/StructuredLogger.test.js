@@ -1426,7 +1426,7 @@ describe('StructuredLogger', function () {
             const ips = ['127.0.0.1', '30.0.0.0']
             const statusCode = 400
 
-            const req = make({ method, originalUrl: url, ips, headers: { 'user-agent': userAgent, referrer }, res: { statusCode } })
+            const req = make({ method, originalUrl: url, ips, headers: { 'user-agent': userAgent, referer: referrer }, res: { statusCode } })
             const log = logger._requestChild(req)
 
             const writeSpy = sinon.spy(log, '_write')
