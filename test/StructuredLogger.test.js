@@ -1,5 +1,6 @@
 const { assert } = require('chai')
 const { createSandbox, match: sinonMatch } = require('sinon')
+
 const { LogSeverity } = require('..')
 
 const sinon = createSandbox()

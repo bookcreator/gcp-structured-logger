@@ -1,6 +1,7 @@
 const { constants: http2 } = require('node:http2')
 
 const { assert } = require('chai')
+
 const { getUrl, getHeader, getProtocol, getRemoteIp, getResponse } = require('../src/request-properties')
 
 describe('request-properties', function () {

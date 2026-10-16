@@ -1,5 +1,5 @@
-// @ts-check
 const { assert } = require('chai')
+
 const hrTime = require('../src/hr-time')
 
 describe('hr-time', function () {

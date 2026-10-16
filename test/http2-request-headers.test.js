@@ -1,4 +1,5 @@
 const { constants: http2 } = require('node:http2')
+
 const { assert } = require('chai')
 
 const { Http2RequestHeaders } = require('../src/http2-request-headers')

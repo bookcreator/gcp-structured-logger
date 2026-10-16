@@ -1,4 +1,5 @@
 const { assert } = require('chai')
+
 const { extractTraceContext } = require('../src/trace-context')
 
 describe('trace-context', function () {

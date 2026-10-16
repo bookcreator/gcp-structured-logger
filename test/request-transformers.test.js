@@ -1,5 +1,5 @@
 const { assert } = require('chai')
-const sinon = require('sinon')
+
 const { requestToHttpRequest, requestToErrorReportingHttpRequest } = require('../src/request-transformers')
 
 describe('request-transformers', function () {

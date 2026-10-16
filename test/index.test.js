@@ -1,4 +1,5 @@
-const { Writable, finished: finishedCb } = require('stream')
+const { Writable, finished: finishedCb } = require('node:stream')
+
 const { assert } = require('chai')
 const { createSandbox, match: sinonMatch } = require('sinon')
 
